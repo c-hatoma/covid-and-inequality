@@ -3,9 +3,26 @@ title: "Chica"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+By Friday: data in order, choose what algorithms to work on
+Next week: Work on our algorithms
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+Options:
+-lm
+-k-means clustering
+-decision trees
+-random forest
+-lda
+-knn
+-splines
+-hierarchical clustering
+-pca
+
+Unsupervised:
+
+
+Supervised:
+
+
 
 ```{r}
 plot(cars)
