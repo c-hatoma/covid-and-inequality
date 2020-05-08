@@ -3,6 +3,8 @@ title: "Chica"
 output: html_notebook
 ---
 
+05/05/20 -------------------------------------------------------------------------
+
 By Friday: data in order, choose what algorithms to work on
 Next week: Work on our algorithms
 
@@ -23,13 +25,181 @@ Unsupervised:
 Supervised:
 
 
+05/07/20 -------------------------------------------------------------------------
 
-```{r}
-plot(cars)
+Libraries:
+```{r libraries, include=FALSE}
+library(readxl)
+library(tidyverse)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+Load in data:
+(covid data for 4/30/20)
+```{r cars}
+covid.data <- read.csv("covid_confirmed_usafacts_2.csv")
+covid.cases <- covid.data[, c(1:4, 104)]
+colnames(covid.cases)[c(1, 2, 5)] <- c("countyFIPS", "County", "covidCases")
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+just in case it's useful I'm gonna bring in death numbers.
+```{r}
+covid.deaths.data <- read_csv('covid_deaths_usafacts.csv')
+covid.deaths <- covid.deaths.data[, c(1:4, 104)]
+colnames(covid.deaths)[c(1, 2, 5)] <- c("countyFIPS", "County", "covidDeaths")
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+Pop data we can use to control/adjust covid case and eviction filing rate data.
+```{r}
+covid.pop.data <- read_csv('covid_county_population_usafacts.csv')
+covid.pop <- covid.pop.data
+```
+
+combine all of the covid data
+```{r}
+covid <- full_join(covid.cases, covid.deaths[, c(1, 5)],
+                   by = "countyFIPS")
+
+covid <- full_join(covid, covid.pop[, c(1, 4)],
+                   by = "countyFIPS")
+
+```
+
+filtering out non-county rows ("Statewide Unallocated")
+```{r}
+covid <- covid %>%
+  filter(countyFIPS != 0)
+covid <- covid %>%
+  filter(countyFIPS != 1)
+```
+
+this is at a bunch of levels but not county I think so I'm going to get something at the county level. that way it can match our county-level covid data.
+```{r}
+eviction.data <- read.csv("eviction.csv")
+# eviction <- eviction.data
+```
+
+this is just the state-reported filing rate for several years. I'll narrow it down to the most recent year.
+```{r}
+eviction.county.data <- read_xlsx('ExtStatsFull.xlsx', sheet = 4)
+eviction <- eviction.county.data
+```
+
+Let's see what the most recent year looks like:
+```{r}
+eviction.2016 <- eviction %>%
+  filter(year == 2016)
+```
+
+Trying to figure out why there are more rows in covid than in eviction data. I guess we can just go with counties where we have both info for both. This leaves us with 26 states.
+```{r}
+length(unique(covid$countyFIPS))
+length(unique(eviction.2016$fips))
+  
+covid.eviction <- inner_join(eviction.2016[, c(1, 4, 5)], covid,
+          by = c("fips" = "countyFIPS"))
+colnames(covid.eviction)[3] <- "Evictions"
+```
+
+Create our mean benchmarks for evictions, deaths, and cases, all over pop. 
+US total pop taken from https://www.census.gov/popclock/
+```{r}
+# state.mean.evictions <- covid.eviction %>%
+#   group_by(State) %>%
+#   summarize(State_mean_evictions = mean(Evictions))
+
+covid.eviction <- covid.eviction %>%
+  mutate(County_eviction_rate = Evictions/population)
+
+state.eviction.rate <- covid.eviction %>%
+  mutate(Eviction_Rate = Evictions/population) %>%
+  group_by(State) %>%
+  summarize(State_eviction_rate = mean(Eviction_Rate))
+
+covid.eviction <- full_join(covid.eviction, state.eviction.rate,
+                            by = "State")
+
+covid.eviction  <- covid.eviction %>%
+  mutate(Evictions_greater_state = ifelse(County_eviction_rate > State_eviction_rate,
+                                          1,
+                                          0))
+
+US.eviction.rate <- covid.eviction %>%
+  summarize(US_eviction_rate = sum(Evictions)/329584132)
+
+covid.eviction <- covid.eviction %>%
+  mutate(Evictions_greater_US = ifelse(County_eviction_rate > US.eviction.rate$US_eviction_rate,
+                                       1,
+                                       0))
+
+covid.eviction <- covid.eviction %>%
+  mutate(US_eviction_rate = US.eviction.rate$US_eviction_rate)
+```
+
+I'm gonna base covid data on average of all states/counties including those that we don't have evictiond data for.
+```{r}
+Us.covid.cases.rate <- covid %>%
+  summarize(US_covid_cases_rate = sum(covidCases)/329584132)
+
+covid.eviction <- covid.eviction %>%
+  mutate(US_covid_cases_rate = Us.covid.cases.rate$US_covid_cases_rate)
+
+US.covid.death.rate <- covid %>%
+  summarize(US_covid_death_rate = sum(covidDeaths)/329584132)
+
+covid.eviction <- covid.eviction %>%
+  mutate(US_covid_death_rate = US.covid.death.rate$US_covid_death_rate)
+
+covid.eviction <- covid.eviction %>%
+  mutate(County_covid_cases_rate = covidCases/population)
+
+covid.eviction <- covid.eviction %>%
+  mutate(County_covid_death_rate = covidDeaths/population)
+
+State.covid.cases.rate <- covid.eviction %>%
+  group_by(State) %>%
+  summarize(State_covid_cases_rate = mean(County_covid_cases_rate))
+
+covid.eviction <- full_join(covid.eviction, State.covid.cases.rate,
+                            by = "State")
+
+State.covid.death.rate <- covid.eviction %>%
+  group_by(State) %>%
+  summarize(State_covid_death_rate = mean(County_covid_death_rate))
+
+covid.eviction <- full_join(covid.eviction, State.covid.death.rate,
+                            by = "State")
+  
+covid.eviction <- covid.eviction %>%
+  mutate(covidCases_greater_state = ifelse(County_covid_cases_rate > State_covid_cases_rate,
+                                           1,
+                                           0))
+
+covid.eviction <- covid.eviction %>%
+  mutate(covidCases_greater_US = ifelse(County_covid_cases_rate >
+                                          US_covid_cases_rate,
+                                        1,
+                                        0))
+
+covid.eviction <- covid.eviction %>%
+  mutate(covidDeaths_greater_US = ifelse(County_covid_death_rate >
+                                          US_covid_death_rate,
+                                        1,
+                                        0))
+
+covid.eviction <- covid.eviction %>%
+  mutate(covidDeaths_greater_state = ifelse(County_covid_death_rate >
+                                              State_covid_death_rate,
+                                            1,
+                                            0))
+```
+
+Reorganize columns:
+```{r}
+covid.eviction <- covid.eviction[, c(1:2, 4, 9, 6, 5, 3, 10:11, 14, 12:13, 
+                                     7:8, 17:20, 15:16, 21, 24, 22:23)]
+```
+
+write new csv:
+```{r}
+# write_csv(covid.eviction, "covid_eviction.csv")
+```
