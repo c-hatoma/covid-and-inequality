@@ -3,29 +3,75 @@ title: "Chica"
 output: html_notebook
 ---
 
-05/05/20 -------------------------------------------------------------------------
+## 05/05/20 ----------------------------------------------------------------------
+## 05/08/20 ----------------------------------------------------------------------
 
 By Friday: data in order, choose what algorithms to work on
 Next week: Work on our algorithms
 
 Options:
--lm
--k-means clustering
--decision trees
--random forest
--lda
--knn
--splines
--hierarchical clustering
--pca
 
-Unsupervised:
+* lm [ lm(covid cases ~ ., data = covid.eviction) ]
+    supervised
+    predictive
+    linear
+    numeric outcome
+
+* k-means clustering
+    unsupervised
+    we can visualize clusters of similar data by distance
+
+* knn
+    supervised
+    predictive
+    can predict based on nearest data points (categorial predictor)
+    
+* decision trees
+    supervised & unsupervised
+    predictive:
+      regression context: predict covid cases using features like eviction
+      can use lm or other models as predictors
+    classification:
+      can just be used to visualize by similar features
+    
+* random forest
+    supervised & unsupervised
+    better tree models
+    predictive
+    classification
+    
+* lda
+    unsupervised
+    used for clustering: maxes distance between categories, mins distance within
+    mostly just for grouping similar things
+
+* pca
+    unsupervised
+    transforms data to new coordinate system which maxes variance between classes
+    also mostly used just to make data easy to visualize by similarity/difference
+    kind of difficult with our data, but we could look at just eviction similarities/differences and how that translates to covid
+
+* splines
+    fits a bunch of data with a squiggly line
+    requires a more or less clear pattern, right? and continuous data on both axes?
+
+* hierarchical clustering
+    
+
+* kernel smoothing
+    supervised
+    predictive
+    estimates function as weighted avg of neighboring data (closer points weighted more)
 
 
-Supervised:
+
+## Unsupervised:
 
 
-05/07/20 -------------------------------------------------------------------------
+## Supervised:
+
+
+## 05/07/20 ----------------------------------------------------------------------
 
 Libraries:
 ```{r libraries, include=FALSE}
@@ -35,27 +81,27 @@ library(tidyverse)
 
 Load in data:
 (covid data for 4/30/20)
-```{r cars}
+```{r data, eval=FALSE, include=FALSE}
 covid.data <- read.csv("covid_confirmed_usafacts_2.csv")
 covid.cases <- covid.data[, c(1:4, 104)]
 colnames(covid.cases)[c(1, 2, 5)] <- c("countyFIPS", "County", "covidCases")
 ```
 
 just in case it's useful I'm gonna bring in death numbers.
-```{r}
+```{r, eval=FALSE, include=FALSE}
 covid.deaths.data <- read_csv('covid_deaths_usafacts.csv')
 covid.deaths <- covid.deaths.data[, c(1:4, 104)]
 colnames(covid.deaths)[c(1, 2, 5)] <- c("countyFIPS", "County", "covidDeaths")
 ```
 
 Pop data we can use to control/adjust covid case and eviction filing rate data.
-```{r}
+```{r, eval=FALSE, include=FALSE}
 covid.pop.data <- read_csv('covid_county_population_usafacts.csv')
 covid.pop <- covid.pop.data
 ```
 
 combine all of the covid data
-```{r}
+```{r, eval=FALSE, include=FALSE}
 covid <- full_join(covid.cases, covid.deaths[, c(1, 5)],
                    by = "countyFIPS")
 
@@ -65,7 +111,7 @@ covid <- full_join(covid, covid.pop[, c(1, 4)],
 ```
 
 filtering out non-county rows ("Statewide Unallocated")
-```{r}
+```{r, eval=FALSE, include=FALSE}
 covid <- covid %>%
   filter(countyFIPS != 0)
 covid <- covid %>%
@@ -73,25 +119,25 @@ covid <- covid %>%
 ```
 
 this is at a bunch of levels but not county I think so I'm going to get something at the county level. that way it can match our county-level covid data.
-```{r}
-eviction.data <- read.csv("eviction.csv")
+```{r, eval=FALSE, include=FALSE}
+# eviction.data <- read.csv("eviction.csv")
 # eviction <- eviction.data
 ```
 
 this is just the state-reported filing rate for several years. I'll narrow it down to the most recent year.
-```{r}
-eviction.county.data <- read_xlsx('ExtStatsFull.xlsx', sheet = 4)
-eviction <- eviction.county.data
+```{r, include=FALSE}
+# eviction.county.data <- read_xlsx('ExtStatsFull.xlsx', sheet = 4)
+# eviction <- eviction.county.data
 ```
 
 Let's see what the most recent year looks like:
-```{r}
+```{r, eval=FALSE, include=FALSE}
 eviction.2016 <- eviction %>%
   filter(year == 2016)
 ```
 
 Trying to figure out why there are more rows in covid than in eviction data. I guess we can just go with counties where we have both info for both. This leaves us with 26 states.
-```{r}
+```{r, eval=FALSE, include=FALSE}
 length(unique(covid$countyFIPS))
 length(unique(eviction.2016$fips))
   
@@ -102,104 +148,127 @@ colnames(covid.eviction)[3] <- "Evictions"
 
 Create our mean benchmarks for evictions, deaths, and cases, all over pop. 
 US total pop taken from https://www.census.gov/popclock/
-```{r}
-# state.mean.evictions <- covid.eviction %>%
-#   group_by(State) %>%
-#   summarize(State_mean_evictions = mean(Evictions))
-
-covid.eviction <- covid.eviction %>%
-  mutate(County_eviction_rate = Evictions/population)
-
-state.eviction.rate <- covid.eviction %>%
-  mutate(Eviction_Rate = Evictions/population) %>%
+```{r, eval=FALSE, include=FALSE}
+state.mean.evictions <- covid.eviction %>%
   group_by(State) %>%
-  summarize(State_eviction_rate = mean(Eviction_Rate))
+  summarize(state_mean_filing_rate = mean(as.numeric(`eviction-filing-rate`), na.rm = TRUE))
 
-covid.eviction <- full_join(covid.eviction, state.eviction.rate,
+covid.eviction <- full_join(covid.eviction, state.mean.evictions,
                             by = "State")
 
 covid.eviction  <- covid.eviction %>%
-  mutate(Evictions_greater_state = ifelse(County_eviction_rate > State_eviction_rate,
+  mutate(evictions_greater_state = ifelse(`eviction-filing-rate` > state_mean_filing_rate,
                                           1,
                                           0))
 
-US.eviction.rate <- covid.eviction %>%
-  summarize(US_eviction_rate = sum(Evictions)/329584132)
+US.mean.evictions <- covid.eviction %>%
+  summarize(US_mean_filing_rate = mean(as.numeric(`eviction-filing-rate`), na.rm = TRUE))
 
 covid.eviction <- covid.eviction %>%
-  mutate(Evictions_greater_US = ifelse(County_eviction_rate > US.eviction.rate$US_eviction_rate,
+  mutate(US_mean_filing_rate = US.mean.evictions$US_mean_filing_rate)
+
+covid.eviction <- covid.eviction %>%
+  mutate(evictions_greater_US = ifelse(`eviction-filing-rate` > US_mean_filing_rate,
                                        1,
                                        0))
-
-covid.eviction <- covid.eviction %>%
-  mutate(US_eviction_rate = US.eviction.rate$US_eviction_rate)
 ```
 
 I'm gonna base covid data on average of all states/counties including those that we don't have evictiond data for.
-```{r}
-Us.covid.cases.rate <- covid %>%
+```{r, eval=FALSE, include=FALSE}
+Us.covid.cases.rate <- covid.eviction %>%
   summarize(US_covid_cases_rate = sum(covidCases)/329584132)
 
 covid.eviction <- covid.eviction %>%
   mutate(US_covid_cases_rate = Us.covid.cases.rate$US_covid_cases_rate)
 
 US.covid.death.rate <- covid %>%
-  summarize(US_covid_death_rate = sum(covidDeaths)/329584132)
+  summarize(US_covid_death_rate = sum(covidDeaths)/sum(covidCases))
 
 covid.eviction <- covid.eviction %>%
   mutate(US_covid_death_rate = US.covid.death.rate$US_covid_death_rate)
 
 covid.eviction <- covid.eviction %>%
-  mutate(County_covid_cases_rate = covidCases/population)
+  mutate(county_covid_cases_rate = covidCases/population)
 
 covid.eviction <- covid.eviction %>%
-  mutate(County_covid_death_rate = covidDeaths/population)
+  mutate(county_covid_death_rate = covidDeaths/covidCases)
 
 State.covid.cases.rate <- covid.eviction %>%
   group_by(State) %>%
-  summarize(State_covid_cases_rate = mean(County_covid_cases_rate))
+  summarize(state_covid_cases_rate = mean(county_covid_cases_rate))
 
 covid.eviction <- full_join(covid.eviction, State.covid.cases.rate,
                             by = "State")
 
 State.covid.death.rate <- covid.eviction %>%
   group_by(State) %>%
-  summarize(State_covid_death_rate = mean(County_covid_death_rate))
+  summarize(state_covid_death_rate = mean(county_covid_death_rate))
 
 covid.eviction <- full_join(covid.eviction, State.covid.death.rate,
                             by = "State")
   
 covid.eviction <- covid.eviction %>%
-  mutate(covidCases_greater_state = ifelse(County_covid_cases_rate > State_covid_cases_rate,
+  mutate(covidCases_greater_state = ifelse(county_covid_cases_rate > state_covid_cases_rate,
                                            1,
                                            0))
 
 covid.eviction <- covid.eviction %>%
-  mutate(covidCases_greater_US = ifelse(County_covid_cases_rate >
+  mutate(covidCases_greater_US = ifelse(county_covid_cases_rate >
                                           US_covid_cases_rate,
                                         1,
                                         0))
 
 covid.eviction <- covid.eviction %>%
-  mutate(covidDeaths_greater_US = ifelse(County_covid_death_rate >
+  mutate(covidDeaths_greater_US = ifelse(county_covid_death_rate >
                                           US_covid_death_rate,
                                         1,
                                         0))
 
 covid.eviction <- covid.eviction %>%
-  mutate(covidDeaths_greater_state = ifelse(County_covid_death_rate >
-                                              State_covid_death_rate,
+  mutate(covidDeaths_greater_state = ifelse(county_covid_death_rate >
+                                              state_covid_death_rate,
                                             1,
                                             0))
 ```
 
 Reorganize columns:
-```{r}
+```{r, eval=FALSE, include=FALSE}
 covid.eviction <- covid.eviction[, c(1:2, 4, 9, 6, 5, 3, 10:11, 14, 12:13, 
                                      7:8, 17:20, 15:16, 21, 24, 22:23)]
 ```
 
 write new csv:
-```{r}
+```{r, eval=FALSE, include=FALSE}
 # write_csv(covid.eviction, "covid_eviction.csv")
 ```
+
+## 05/08/2020 --------------------------------------------------------------------
+
+Add in other evictionlab variables:
+```{r}
+covid.eviction <- read_csv('covid_eviction.csv')
+
+US.evictions <- read_csv('counties_us.csv')
+
+eviction <- US.evictions
+
+eviction.2016 <- eviction %>%
+  filter(year == 2016)
+
+length(unique(covid$countyFIPS))
+length(unique(eviction.2016$GEOID))
+
+str(eviction.2016$GEOID)
+str(covid$countyFIPS)
+
+eviction.2016$GEOID <- as.numeric(eviction.2016$GEOID)
+  
+covid.eviction <- inner_join(eviction.2016[, -c(3:5)], covid,
+          by = c("GEOID" = "countyFIPS"))
+
+# write_csv(covid.eviction, "covid_eviction2.csv")
+
+```
+
+
+
