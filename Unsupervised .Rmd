@@ -7,24 +7,107 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(rvest)
+library(tidyverse)
+library(data.table)
+library(tidytext)
+library(stringr)
+library(ggplot2)
+library(ggrepel)
+library(dendextend)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+# read csv 
+library(readr)
+covid.eviction <- read_csv("covid_eviction2.csv")
+covid.eviction <- covid.eviction[,-2]
 ```
 
-## Including Plots
+In order to see the "optimal" number of subgroups we can create, hierarchical clustering is used before k-means clustering in order to see the  This way, we can efficiently choose different number of "k" for the k-means clustering and compare the results. 
 
-You can also embed plots, for example:
+For the purpose of clustering, we look at data of each state, not county. That way, we do not look at thousands of observations (e.g. 2261 observations just for states whose number of covid cass is lower than in its state level) but 50 states (including Hawai'i) instead. In doing so, we are able to look at the data in a "bigger" picture and focus on the key variables in graphs, including dendrograms.  
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+## Data Cleaning
+For the purpose of our exploratory project, we remove "evictions" variable, as we consider "evictions filings" more heavily.
+
+```{r}
+covid.eviction.clust <- covid.eviction[,-c(1, 18:24, 30:43)] #remove unnecessary columns
+
+covid.eviction.clust <- covid.eviction.clust %>%
+  group_by(State) %>%
+  summarise_all(mean, na.rm = TRUE)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Fundamental Calculations
+Most names of the columns stay the same (c.f. covid.eviction dataset)
+
+```{r}
+Us.covid.rate <- covid.eviction %>%
+  summarize(US_covid_cases_rate = sum(covidCases)/329584132,
+            US_covid_death_rate = sum(covidDeaths)/sum(covidCases))
+
+covid.eviction.clust <- covid.eviction.clust %>%
+  mutate(US_covid_cases_rate = Us.covid.rate$US_covid_cases_rate,
+         US_covid_death_rate = Us.covid.rate$US_covid_death_rate)
+
+State.covid.rate <- covid.eviction.clust %>%
+  group_by(State) %>%
+  summarize(state_covid_cases_rate = covidCases/population,
+            state_covid_death_rate = covidDeaths/covidCases)
+
+covid.eviction.clust <- full_join(covid.eviction.clust, State.covid.rate,
+                                  by = "State")
+
+covid.eviction.clust <- covid.eviction.clust %>%
+  mutate(covidCases_greater_US = ifelse(state_covid_cases_rate > US_covid_cases_rate,
+                                           1,
+                                           0)) %>%
+  mutate(covidDeaths_greater_US = ifelse(state_covid_death_rate >
+                                          US_covid_death_rate,
+                                         1,
+                                         0))
+```
+
+
+# Hierarchical clustering
+## Covid Case Rates: US-level
+### Lower than the average level of US
+
+```{r}
+lower.state <- covid.eviction.clust %>%
+  filter(covidCases_greater_US == 0)
+
+lower.state.scaled <- scale(lower.state.subset)
+lower.state.dist <- dist (lower.state.scaled)
+low.case.hc.complete = hclust(lower.state.dist)
+plot(low.case.hc.complete)
+
+low.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(lower.state$County) %>%
+  set("labels_cex", 0.5) %>% #change text size
+  plot()
+
+
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
