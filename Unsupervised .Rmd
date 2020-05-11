@@ -17,16 +17,19 @@ library(ggrepel)
 library(dendextend)
 ```
 
+# Hierarchical and K-means Clustering
+In order to see the "optimal" number of subgroups we can create, hierarchical clustering is used before k-means clustering in order to see the  This way, we can efficiently choose different number of "k" for the k-means clustering and compare the results. 
+
+For the purpose of clustering, we look at data of each state, not county. That way, we do not look at thousands of observations (e.g. 2261 observations just for states whose number of covid cass is higher than in its state level) but 50 states (including Hawai'i) instead. In doing so, we are able to look at the data in a "bigger" picture and focus on the key variables in graphs, including dendrograms.  
+
+There are four cases that we will analyze: two in which the rate of covid cases in the respective states is higher/lower than the US level (mean rate of covid cases across the country), and the other two in which the rate of covid *deaths* is higher/lower than the US level (mean rate of covid deaths across the country).
+
 ```{r}
 # read csv 
 library(readr)
 covid.eviction <- read_csv("covid_eviction2.csv")
 covid.eviction <- covid.eviction[,-2]
 ```
-
-In order to see the "optimal" number of subgroups we can create, hierarchical clustering is used before k-means clustering in order to see the  This way, we can efficiently choose different number of "k" for the k-means clustering and compare the results. 
-
-For the purpose of clustering, we look at data of each state, not county. That way, we do not look at thousands of observations (e.g. 2261 observations just for states whose number of covid cass is lower than in its state level) but 50 states (including Hawai'i) instead. In doing so, we are able to look at the data in a "bigger" picture and focus on the key variables in graphs, including dendrograms.  
 
 ## Data Cleaning
 For the purpose of our exploratory project, we remove "evictions" variable, as we consider "evictions filings" more heavily.
@@ -71,43 +74,186 @@ covid.eviction.clust <- covid.eviction.clust %>%
 
 
 # Hierarchical clustering
-## Covid Case Rates: US-level
-### Lower than the average level of US
+In hierarchical clustering, we use continuous, quantitative variables only. With four graphs below, we reason why we choose complete linkage as our metric of "distance".
+
+## Covid CASE Rates: 
+### lower than the US level
 
 ```{r}
-lower.state <- covid.eviction.clust %>%
+c.lower.state <- covid.eviction.clust %>%
   filter(covidCases_greater_US == 0)
 
-lower.state.scaled <- scale(lower.state.subset)
-lower.state.dist <- dist (lower.state.scaled)
-low.case.hc.complete = hclust(lower.state.dist)
-plot(low.case.hc.complete)
+c.lower.state.subset <- c.lower.state[,-c(18, 22:27)]
 
-low.case.hc.complete %>%
+c.lower.state.scaled <- scale(c.lower.state.subset %>%
+                              select(-State))
+c.lower.state.dist <- dist (c.lower.state.scaled)
+
+c.low.case.hc.single = hclust(c.lower.state.dist, method = "single")
+c.low.case.hc.avg = hclust(c.lower.state.dist, method = "average")
+c.low.case.hc.complete = hclust(c.lower.state.dist, method = "complete")
+
+c.low.case.hc.complete
+
+c.low.case.hc.single %>%
   as.dendrogram() %>%
-  place_labels(lower.state$County) %>%
-  set("labels_cex", 0.5) %>% #change text size
+  place_labels(c.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 12) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =12) %>%
   plot()
 
+c.low.case.hc.avg %>%
+  as.dendrogram() %>%
+  place_labels(c.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =6) %>%
+  plot()
 
-
+c.low.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(c.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =6) %>%
+  plot()
 ```
 
+Before going further into the usage of different linkage methods, one thing to observe from all three graphs is that there are many states. More specifically, this suggests that there are many states given the condition that the respective rate of covid cases is lower than the mean rate of covid cases across the nation, which may be reassuring.
 
+#### Usage of linkage techniques
+
+Euclidean distance is used as a metric for the distance of dissimilarities. 
+
+[Comparisons of linkage methods]
+In all four cases, we see one commonality that Hawaii is not connected to any other state. More specifically, in the three methods (single, average, and complete), the state acts as an "outlier" and is the most dissimlar to all remaining 50 states. This "outlier" observation may be due to the geographical proximity, as it is an island and thus is possible to not share similar attributes with 50 other states.
+
+The complete method by far is the best solution amongst the three linkages, since the single and average methods are expressed in a more extended form -- that is, multiple states are clustered in one big group before being clustered into other subgroups (e.g. the violet-colored states from OR to VT as shown in single linkage, and the purple-colored states from SC to VA in average linkage). As we try to observe the states in a big picture, having them grouped in smaller subsets allows us to visually analyze more effieciently. Thus, although complete linkage is a more commonly used method, we will use Ward's method. 
+
+[Analysis of the Complete Linkage]
+Similarly to HI, CA and AK are not found to be similar to other states until much later, more specifically, at the height of around 10. Furthermore, it is interesting to observe that states are linked based on their physical proximities (e.g. NM and TX in purple), this does not hold true to all linkages (e.g. FL and NV in green). Let's look further into these two examples. 
+
+
+##### NM & TX
+```{r}
+lower.state.subset %>%
+  filter(State == "NM" | State == "TX" | State == "SC" | State == "SD")
+```
+
+We compare NM and TX with SC (in the same color) and SD (grouped into another subset until their subsets merge at the height of around 7). From the data set, we can assume that some of the variables that were considered to match the two states NM and TX might have been as follows: poverty rate, eviction filings, percentage of hispanics, covidDeaths, and covidCases. Of course, because we're loooking at a datset of just four states and do not compare all states from one another, this should be handled merely as a sample that allows us to see what variables *could have* been considered in the dendrogram and scatterplot. If this observation, however, can be generalized into the whole dataset that we used for the this hierarchical clustering, such an analysis allows us to assume that the influence of geographical proximity on clustering. That is, variables like poverty rate and percentage of hispanics may be similar to states that are located closely to each other due to socieconomic factors. 
+
+
+##### FL & NV
+```{r}
+lower.state.subset %>%
+  filter(State == "FL" | State == "NV" | State == "AZ" | State == "HI")
+```
+
+We use a similar method to compare between FL and NV, and two other states: AZ is chosen, since it's not connected to FL and NV until the height = around 6; and HI is chosen, since it'd be interesting to look what dissimilar values it has to become an outlier, although this is not the focus of our comparison between FL and NV. 
+
+In comparison, FL and NV seem to share similar percentage of whites, hispanics, and other, which may have factored into their preliminary stage of clustering, although again, this comparison method is not holistic, as we are only comparing amongst four states. 
+
+This comparison of four states, however, is important, as it proves that one should not easily assume that geographical proximity is the primary step to cluster states into subgroups. Specifically speaking, AZ and NV are neighboring states, but variables, including the poverty rate, renter occupied households, population, and covidCases, in NV are *far* smaller than those in AZ. 
+
+```{r}
+library(factoextra)
+c.low.case.clust.df <- c.lower.state.scaled
+rownames(c.low.case.clust.df) <- c.lower.state$State
+c.low.case.clust <- cutree(c.low.case.hc.complete, k = 6)
+fviz_cluster(list(data = c.low.case.clust.df, cluster = c.low.case.clust),
+             labelsize = 8)
+```
+
+Another way to show the same results from the previous dendrogram is with a scatterplot as shown here. We designate k as 6, resulting in 6 different clusters. One difference to note between the dendrogram and the scatterplot is that this plot represents the first stage of the dendrogram, that is, before HI, AK, and CA are merged into subsets. Before that stage, these three states are acting "outliers". HI is the farthest amongst all 51 states (especially the three subgroups), followed by CA and AK. One drawback is that it is difficult to  identify all states regardless of whether they overlap in the graph. 
+
+* Note: The dimensions represent a percentage of variation from the original dataset used. The principal component accounts for 38.5% and the second component accounts for 23.8% of the variation in the dataset. This somewhat low variation suggests lower level of dispersion that, for example, dimension percentage of 70% would. 
+
+----------
+Now that we have extensively explored different linkage methods as well as closer look into certain states, we will look at three other cases more concisely, with complete linkage only. 
+
+### Higher than the US level
+```{r}
+c.higher.state <- covid.eviction.clust %>%
+  filter(covidCases_greater_US == 1)
+
+c.higher.state.subset <- c.higher.state[,-c(18, 22:27)]
+
+c.higher.state.scaled <- scale(c.higher.state.subset %>%
+                              select(-State))
+c.higher.state.dist <- dist (higher.state.scaled)
+c.high.case.hc.complete = hclust(c.higher.state.dist)
+
+c.high.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(c.higher.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =6) %>%
+  plot()
+```
+
+## Covid DEATH Rates
+### higher than the US level
+```{r}
+d.lower.state <- covid.eviction.clust %>%
+  filter(covidDeaths_greater_US == 0)
+
+d.lower.state.subset <- d.lower.state[,-c(18, 22:27)]
+
+d.lower.state.scaled <- scale(d.lower.state.subset %>%
+                              select(-State))
+d.lower.state.dist <- dist (d.lower.state.scaled)
+d.low.case.hc.complete = hclust(d.lower.state.dist)
+
+d.low.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(d.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =6) %>%
+  plot()
+```
+
+### Higher than the US level
+```{r}
+d.higher.state <- covid.eviction.clust %>%
+  filter(covidDeaths_greater_US == 1)
+
+d.higher.state.subset <- d.higher.state[,-c(18, 22:27)]
+
+d.higher.state.scaled <- scale(d.higher.state.subset %>%
+                              select(-State))
+d.higher.state.dist <- dist (d.higher.state.scaled)
+d.high.case.hc.complete = hclust(d.higher.state.dist)
+
+d.high.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(d.higher.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =6) %>%
+  plot()
+```
+
+As can be seen in the dendrogram, on the left-hand side (LHS) of the graph (NJ, MA, CT, NY) are all adjoining states in New England area, while those on the right-hand side (RHS) are either a southern state or midwestern state. The geographical proximity may reflect the distance of (dis)similarities as observed on the y-axis. That is, given the slightly shorter "height" of the y-axis on the LHS than on the RHS, we can state that the former are more similar amongst each other than the latter in general, even though the subsets of {CT, NY} and {MI, MN} have the same height to start off with in the dendrogram.
 
 ```{r}
 
 ```
 
 
+References:
+Ward's method
+https://www.stat.cmu.edu/~cshalizi/350/lectures/08/lecture-08.pdf
 
-
-
-
-
-
-
-
-
-
+fviz_cluster
+https://uc-r.github.io/hc_clustering
+https://stats.stackexchange.com/questions/263374/clusters-and-data-visualisation-in-r
 
