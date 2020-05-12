@@ -15,6 +15,7 @@ library(stringr)
 library(ggplot2)
 library(ggrepel)
 library(dendextend)
+library(factoextra)
 ```
 
 # Hierarchical and K-means Clustering
@@ -73,10 +74,10 @@ covid.eviction.clust <- covid.eviction.clust %>%
 ```
 
 
-# Hierarchical clustering
+# HIERARCHICAL clustering
 In hierarchical clustering, we use continuous, quantitative variables only. With four graphs below, we reason why we choose complete linkage as our metric of "distance".
 
-## Covid CASE Rates: 
+## State Covid CASE Rates: 
 ### lower than the US level
 
 ```{r}
@@ -140,7 +141,7 @@ Similarly to HI, CA and AK are not found to be similar to other states until muc
 
 ##### NM & TX
 ```{r}
-lower.state.subset %>%
+c.lower.state.subset %>%
   filter(State == "NM" | State == "TX" | State == "SC" | State == "SD")
 ```
 
@@ -149,7 +150,7 @@ We compare NM and TX with SC (in the same color) and SD (grouped into another su
 
 ##### FL & NV
 ```{r}
-lower.state.subset %>%
+c.lower.state.subset %>%
   filter(State == "FL" | State == "NV" | State == "AZ" | State == "HI")
 ```
 
@@ -160,12 +161,11 @@ In comparison, FL and NV seem to share similar percentage of whites, hispanics, 
 This comparison of four states, however, is important, as it proves that one should not easily assume that geographical proximity is the primary step to cluster states into subgroups. Specifically speaking, AZ and NV are neighboring states, but variables, including the poverty rate, renter occupied households, population, and covidCases, in NV are *far* smaller than those in AZ. 
 
 ```{r}
-library(factoextra)
 c.low.case.clust.df <- c.lower.state.scaled
 rownames(c.low.case.clust.df) <- c.lower.state$State
 c.low.case.clust <- cutree(c.low.case.hc.complete, k = 6)
 fviz_cluster(list(data = c.low.case.clust.df, cluster = c.low.case.clust),
-             labelsize = 8)
+             labelsize = 8, title = "Cluster plot when k = 6")
 ```
 
 Another way to show the same results from the previous dendrogram is with a scatterplot as shown here. We designate k as 6, resulting in 6 different clusters. One difference to note between the dendrogram and the scatterplot is that this plot represents the first stage of the dendrogram, that is, before HI, AK, and CA are merged into subsets. Before that stage, these three states are acting "outliers". HI is the farthest amongst all 51 states (especially the three subgroups), followed by CA and AK. One drawback is that it is difficult to  identify all states regardless of whether they overlap in the graph. 
@@ -175,7 +175,7 @@ Another way to show the same results from the previous dendrogram is with a scat
 ----------
 Now that we have extensively explored different linkage methods as well as closer look into certain states, we will look at three other cases more concisely, with complete linkage only. 
 
-### Higher than the US level
+### Higher than the US Level (CASE rate) 
 ```{r}
 c.higher.state <- covid.eviction.clust %>%
   filter(covidCases_greater_US == 1)
@@ -191,14 +191,36 @@ c.high.case.hc.complete %>%
   as.dendrogram() %>%
   place_labels(c.higher.state$State) %>%
   set("labels_cex", 0.5) %>% 
+  color_labels(k = 4) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k = 4) %>%
+  plot() 
+
+c.high.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(c.higher.state$State) %>%
+  set("labels_cex", 0.5) %>% 
   color_labels(k = 6) %>%
   set("branches_lwd", 5) %>%
-  color_branches(k =6) %>%
+  color_branches(k = 6) %>%
   plot()
+
+c.high.case.clust.df <- c.higher.state.scaled
+rownames(c.high.case.clust.df) <- c.higher.state$State
+c.high.case.clust <- cutree(c.high.case.hc.complete, k = 6)
+fviz_cluster(list(data = c.high.case.clust.df, cluster = c.high.case.clust),
+             labelsize = 8, title = "'Cluster plot when k = 6")
+
+fviz_cluster(list(data = c.high.case.clust.df, cluster = cutree(c.high.case.hc.complete, k = 4)),
+             labelsize = 8, title = "Cluster plot when k = 4")
 ```
 
+With fewer states present given the condition that covid case rates are larger than the US level, a dendrogram is a better visualization than the scatterplot that shows a subset of one or two states for the majority of the sample. Of course, if we change the k from 6 to 4, there will be fewer clusters and make the scatterplot more visually organized that now links MI, IL, PA, and LA into one group that are separated in the graph with k = 6. This observation will be futher discussed in the "K-Means clustering" section. 
+
+When looking at the dendrogram with colors based on k = 4 (changing k here, however, does not change the clustering process, as shown in the second graph), we see that the far RHS shows the New England states, from NJ to MA. However, some of the other New England states are clustered into other groups with non-New England states, e.g. RI with DE, IL and PA. Moreover, DC is the most dissimlar state amongst these 12 states. 
+
 ## Covid DEATH Rates
-### higher than the US level
+### lower than the US level
 ```{r}
 d.lower.state <- covid.eviction.clust %>%
   filter(covidDeaths_greater_US == 0)
@@ -216,9 +238,36 @@ d.low.case.hc.complete %>%
   set("labels_cex", 0.5) %>% 
   color_labels(k = 6) %>%
   set("branches_lwd", 5) %>%
-  color_branches(k =6) %>%
+  color_branches(k = 6) %>%
   plot()
+
+d.low.case.clust.df <- d.lower.state.scaled
+rownames(d.low.case.clust.df) <- d.lower.state$State
+d.low.case.clust <- cutree(d.low.case.hc.complete, k = 6)
+fviz_cluster(list(data = d.low.case.clust.df, cluster = d.low.case.clust),
+             labelsize = 8, title = "Cluster plot when k = 6")
+
+fviz_cluster(list(data = d.low.case.clust.df, cluster = cutree(d.low.case.hc.complete, k = 12)),
+             labelsize = 8, title = "Cluster plot when k =12")
 ```
+
+When k increases from 6 to 12, there are overlaps amongst some clusters. If we keep k = 6, we see that there are no clusters and fewer subsets of a single state, e.g. HI, AK, MD, and DC. This explains the overfitting process for when the value of k is large.
+
+Similarly to when the state covid case rates are lower than the US level, the majority of the US states are found to have death rates lower than the US level. This means that, under collective linkage, there are multiple clusters. However, one difference is that it is not HI that is the greatest outlier, but rather DC. Let's look at possible factors. 
+
+```{r}
+d.lower.state.subset %>%
+  filter(State == "HI" | State == "DC" | State == "AK" | State == "MT" | State == "MD" | State == "CA")
+```
+
+We look at different states, each from a different k group. We see that DC has the hgihest poverty rate, renter occupied households, percentage of renter occupied, median gross rent, median household income, median property value, percentage of African Americans and other, population, eviction filings, and, most importantly, covid cases and covid deaths. Let's look more deeply. 
+
+```{r}
+cor(d.lower.state.subset %>%
+      select(-State))
+```
+
+The correlation coefficient helps us explain how these variables as listed above have such high values in DC compared to in other states. The variables "covidCases" and "covidDeaths" are very highly and positively correlated to renter occupied households, percentage of renter occupied, median gross rent, median household income, eviction filings, percentage of African Americans and median property value, all with correlation coefficients higher than or just about 0.5. This explains that with one of these variables of a large value comes a high level of covid cases and death rates. This ultimately explains why DC is the greater outlier in this dataset. 
 
 ### Higher than the US level
 ```{r}
@@ -238,12 +287,26 @@ d.high.case.hc.complete %>%
   set("labels_cex", 0.5) %>% 
   color_labels(k = 6) %>%
   set("branches_lwd", 5) %>%
-  color_branches(k =6) %>%
+  color_branches(k = 6) %>%
   plot()
+
+d.high.case.clust.df <- d.higher.state.scaled
+rownames(d.high.case.clust.df) <- d.higher.state$State
+d.high.case.clust <- cutree(d.high.case.hc.complete, k = 6)
+fviz_cluster(list(data = d.high.case.clust.df, cluster = d.high.case.clust),
+             labelsize = 8)
 ```
+
+Similarly to when the state case rate was higher than the US level, there are several states (to be more specific, one fewer state). At this point, we know that the scatterplot isnt' efficient to visually observe the clusters, unless we want to know the level of variation. Even so, it is not worth it, since the high level of variation of 61.4% used to cluster in the principal component shows great dispersion anyway. 
 
 As can be seen in the dendrogram, on the left-hand side (LHS) of the graph (NJ, MA, CT, NY) are all adjoining states in New England area, while those on the right-hand side (RHS) are either a southern state or midwestern state. The geographical proximity may reflect the distance of (dis)similarities as observed on the y-axis. That is, given the slightly shorter "height" of the y-axis on the LHS than on the RHS, we can state that the former are more similar amongst each other than the latter in general, even though the subsets of {CT, NY} and {MI, MN} have the same height to start off with in the dendrogram.
 
+### Analysis of Hierarchical Clustering
+First and foremost, we have the flexibility to choose what method to use for hierarchical clustering, from single to complete linkage. As we have seen with four different cases, hierarchical clustering allows us to choose not only how many clusters we want to color but also how we would like it to be visualized, with combining the k. What is also efficient about this clustering process is that it helps us observe the "distance of dissimilarity" by looking at the height of the line as represented by the y-axis. 
+
+One disadvantage of hierarchical clustering is that it is difficult to pinpoint the factors that act as threshold of the clustering process. We can only assume the potential variables that may have played into it, such as geographical proximity, but that does not hold true in all cases, as we have observed in the first case. There could be other underlying socioeconomic factors, but with hierarchical clustering, we cannot confirm with full certainty, neither the dendrograms nor the scatterpots with fviz_cluster() function identify them. 
+
+# K-MEANS clustering
 ```{r}
 
 ```
