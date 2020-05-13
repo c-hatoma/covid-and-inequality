@@ -88,7 +88,7 @@ c.lower.state.subset <- c.lower.state[,-c(18, 22:27)]
 
 c.lower.state.scaled <- scale(c.lower.state.subset %>%
                               select(-State))
-c.lower.state.dist <- dist (c.lower.state.scaled)
+c.lower.state.dist <- dist(c.lower.state.scaled)
 
 c.low.case.hc.single = hclust(c.lower.state.dist, method = "single")
 c.low.case.hc.avg = hclust(c.lower.state.dist, method = "average")
@@ -306,10 +306,88 @@ First and foremost, we have the flexibility to choose what method to use for hie
 
 One disadvantage of hierarchical clustering is that it is difficult to pinpoint the factors that act as threshold of the clustering process. We can only assume the potential variables that may have played into it, such as geographical proximity, but that does not hold true in all cases, as we have observed in the first case. There could be other underlying socioeconomic factors, but with hierarchical clustering, we cannot confirm with full certainty, neither the dendrograms nor the scatterpots with fviz_cluster() function identify them. 
 
+-----------------------------------
+
 # K-MEANS clustering
+From hierarchical clustering, we see that clustering is done best when k ranges from 4 to 6. Again, we attempted hierarchical clustering before k-means clustering given that it is hard to find the "optimal" k-value. Right off the bat, it is hard to do k-means clustering, since we're using each of the 51 states as a categorical variable. It is not the same as when we observe starbucks data from openintro library or iris dataset where there are groups of states that we start off with. 
+
+Therefore, we will explore the dataset, focusing on the case and death rates in general. That is, instead of looking at each state in a given level (e..g case rate < US level), we will categorize all states by the case rate level, in which it is either higher or lower than the US level.
+
+## Creating Levels (depending on case and death rates):
 ```{r}
+km.covid.eviction.clust <- covid.eviction.clust[,-c(18, 22:25)]
+km.covid <- km.covid.eviction.clust %>%
+  mutate(levels = ifelse(covidCases_greater_US == 0 & covidDeaths_greater_US == 0, "low case",
+                         ifelse(covidCases_greater_US == 1 & covidDeaths_greater_US == 0, "high case but low death",
+                                ifelse(covidCases_greater_US == 1 & covidDeaths_greater_US == 1, "high case and deaths",
+                                       ifelse(covidCases_greater_US == 0 & covidDeaths_greater_US == 1, "low case but high death", NA)))))
 
 ```
+
+## Determining the "optimal" range of k
+
+```{r}
+# Let's make a graph showing k vs the total within cluster variation
+tot <- NULL
+for(i in 1:20){
+ km <- kmeans(km.covid %>% select(-State, -levels),
+              i)
+ tot[i] <- km$tot.withinss/i #averaging by the # of clusters
+}
+plot(tot) #k between 3 and 5 seems reasonable
+```
+
+From the elbow plot above, we see that the optimal k would be either 2 or 3 given that the variation is low to the extent to which it doesn't overfit the data (c.f. when k = 20). These values are lower than what we have seen in hierarchical clustering. Similarly to the effects of high levels of k, such low values of k most likely result in "underfitting" -- that is, it will not clearly divide the data points into groups. 
+
+Let's explore data when k = 2, 4, *and* 6, and see if maybe a value greater than 4 would provide a better clustering than 4 or 2:
+
+```{r}
+km.scaled <- scale(km.covid %>%
+                         select(-State, -levels))
+km.scaled_2 <- kmeans(km.scaled, 2)
+km.scaled_4 <- kmeans(km.scaled, 4)
+km.scaled_6 <- kmeans(km.scaled, 6)
+km.scaled_2$centers
+
+km.covid %>%
+  mutate(cluster = km.scaled_2$cluster) %>%
+  ggplot(aes(x = `median-property-value`,
+             y = `pct-renter-occupied`)) +
+  geom_point(aes(color = factor(cluster)),
+             size = 3)
+
+km.covid %>%
+  mutate(cluster = km.scaled_4$cluster) %>%
+  ggplot(aes(x = `median-property-value`,
+             y = `pct-renter-occupied`)) +
+  geom_point(aes(color = factor(cluster)),
+             size = 3)
+
+km.covid %>%
+  mutate(cluster = km.scaled_6$cluster) %>%
+  ggplot(aes(x = `median-property-value`,
+             y = `pct-renter-occupied`)) +
+  geom_point(aes(color = factor(cluster)),
+             size = 3)
+```
+
+Just from looking at the second and third graphs, we see that there are overlaps, while there is almost none in the first graph when k = 2. This makes sense, because there are more than just the variables from the x- and y-axes that we are analyzing the data from. 
+
+The fact that there is an overlap even when k = 2 suggests that it is almost impossible to cluster perfectly. However, although we want (almost) a perfect separation as shown in the first graph, a k-value as small as 2 is skeptical -- it is skeptical to cluster many observations into just two groups when there are multiple variables to consider. Let's dig a little more deeply. 
+
+```{r}
+# How well did k-means do?
+table(km.scaled_2$cluster, km.covid$levels)
+table(km.scaled_4$cluster, km.covid$levels)
+table(km.scaled_6$cluster, km.covid$levels)
+
+ # use Euclidean distance
+km.scaled_2$tot.withinss # total of Euclidean distances: how compact are my clusters?
+km.scaled_4$tot.withinss
+km.scaled_6$tot.withinss
+```
+
+As we see with total within-variation, the case in which k = 2 has the highest variation, almost as twice as when k = 6 and almost the sum of when k = 4 and k = 6. It is by no surprise that the higher the k-value, the less variation of the dataset. And with that observation, we would initially assume that the higher k-value would lead to more accurate clustering. However, the results from the tables show otherwise. When we look at "low case" (the third column), there are "low case" situations in all four k segments, but there are fewer than there are in k = 6 segments. Not only does this prove our assumption to be false, but it also serves as an example of overfitting. Additionally, this observation shows that it is hard to determine the optimal value of k. It really boils down to what we prioritize --  for example, are we focusing on having the least variation? or the accuracy?
 
 
 References:
@@ -319,4 +397,8 @@ https://www.stat.cmu.edu/~cshalizi/350/lectures/08/lecture-08.pdf
 fviz_cluster
 https://uc-r.github.io/hc_clustering
 https://stats.stackexchange.com/questions/263374/clusters-and-data-visualisation-in-r
+
+```{r}
+
+```
 
