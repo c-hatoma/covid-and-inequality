@@ -270,5 +270,178 @@ covid.eviction <- inner_join(eviction.2016[, -c(3:5)], covid,
 
 ```
 
+## 05/14/2020 --------------------------------------------------------------------
+
+# LM
+```{r}
+library(readxl)
+library(tidyverse)
+covid.eviction <- read_csv('covid_eviction2.csv')
+```
+
+simple lm:
+covid case rate against eviction filing rate
+```{r}
+lm1 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`,
+          data = covid.eviction)
+summary(lm1)
+```
+significant
+Rsq
+What other measures do we need to compare this to other models?
+
+graph it to see what the slope looks like:
+```{r}
+library(ggplot2)
+covid.eviction %>%
+  ggplot(aes(x = `eviction-filing-rate`,
+             y = county_covid_cases_rate)) +
+  geom_point() +
+  geom_abline(intercept = 1.121e-03, 
+              slope = 9.185e-05)
+```
+
+Are there outliers I need to remove?
+```{r}
+outliers <- boxplot.stats(covid.eviction$`eviction-filing-rate`)$out
+```
+eh nevermind
+
+Add controls for poverty rate:
+```{r}
+lm2 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `poverty-rate`,
+          data = covid.eviction)
+summary(lm2)
+```
+Adjusted R-sq increased
+all variables significant
+
+Try with additional income variables:
+```{r}
+lm3 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `poverty-rate` + `renter-occupied-households`,
+          data = covid.eviction)
+summary(lm3)
+```
+Adjusted R squared just doubled. 
+Is renter occupied households just increasing bc its not a rate? (greater pop -> greater renter pop)
+
+Will try control:
+```{r}
+covid.eviction2 <- covid.eviction %>%
+  mutate(renter_rate = `renter-occupied-households`/population)
+
+lm4 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `poverty-rate` + renter_rate,
+          data = covid.eviction2)
+summary(lm4)
+```
+decreases Adj r-sq but still higher than simple or just eviction filing and poverty rate lm.  will go with this.
+
+Add more variables:
+```{r}
+lm5 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `poverty-rate` + renter_rate +
+            `rent-burden`,
+          data = covid.eviction2)
+summary(lm5)
+```
+Rent burden seems to make poverty rate insignificant. Prob bc they kind of represent the same thing. 
+Try taking out poverty rate:
+```{r}
+lm6 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + renter_rate +
+            `rent-burden`,
+          data = covid.eviction2)
+summary(lm6)
+```
+
+Other demo variables pct-af-am:
+```{r}
+lm7 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + renter_rate + `rent-burden` +
+            `pct-af-am`,
+          data = covid.eviction2)
+summary(lm7)
+```
+drastically increases adj r-sq, and rent-related variables become insignificant.
+
+Remove those rent variables:
+
+```{r}
+lm8 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am`,
+          data = covid.eviction2)
+summary(lm8)
+```
+adj R-sq decreases slightly but i think the model is better.
+
+Add all other race-related variables:
+```{r}
+lm9 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` + `pct-am-ind` + `pct-white` + `pct-asian` + `pct-nh-pi`,
+          data = covid.eviction2)
+summary(lm9)
+```
+Adj r-sq goes up but significance changes.
+
+Remove insignificant pct-nh-pi:
+
+```{r}
+lm10 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` + `pct-am-ind` + `pct-white` + `pct-asian`,
+          data = covid.eviction2)
+summary(lm10)
+```
+All race percentages are significant, but they're also all positive, which means being any race makes for greater covid case rates. Some are higher than others, and mostly follow patterns as predicted. I'm going to try anova to see what it comes with.
+
+ANOVA:
+```{r}
+aov1 <- aov(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` + `pct-am-ind` + `pct-white` + `pct-asian`,
+          data = covid.eviction2)
+summary(aov1)
+```
+
+remove pct-am-ind:
+```{r}
+aov2 <- aov(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` + `pct-white` + `pct-asian`,
+          data = covid.eviction2)
+summary(aov2)
+```
+
+remove pct white:
+
+```{r}
+aov3 <- aov(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` +  `pct-asian`,
+          data = covid.eviction2)
+summary(aov3)
+```
 
 
+New long model:
+```{r}
+lm11 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` +  `pct-asian`,
+          data = covid.eviction2)
+summary(lm11)
+```
+Super high adj-rq (comparatively)
+All variables significant, but eviction becomes less significant
+shows that race seems to matter more than anything.
+
+Try interaction?
+```{r}
+aov4 <- aov(county_covid_cases_rate ~ `eviction-filing-rate`*`pct-af-am` + `pct-hispanic` +  `pct-asian`,
+          data = covid.eviction2)
+summary(aov4)
+```
+
+Interaction is significant. Adding it to model:
+```{r}
+lm12 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`*`pct-af-am` + `pct-hispanic` +  `pct-asian`,
+          data = covid.eviction2)
+summary(lm12)
+```
+adj r-sq Increases significantly, all variables highly significant.
+Shows that as pct-af-am increases, eviction filing rate matters less.
+Magnitude of coefficients:
+1) pct-asian
+2) eviction-filing-rate
+3) pct-af-am
+4) pct-hispanic
+5) `eviction-filing-rate`:`pct-af-am`
+
+
+
+# KNN

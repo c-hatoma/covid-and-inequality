@@ -1825,19 +1825,569 @@ summary {
 <p>Add in other evictionlab variables:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3RyKGV2aWN0aW9uLjIwMTYkR0VPSUQpXG5cbmBgYCJ9 -->
-<pre class="r"><code>str(eviction.2016$GEOID)
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY292aWQuZXZpY3Rpb24gPC0gcmVhZF9jc3YoJ2NvdmlkX2V2aWN0aW9uLmNzdicpXG5cblVTLmV2aWN0aW9ucyA8LSByZWFkX2NzdignY291bnRpZXNfdXMuY3N2JylcblxuZXZpY3Rpb24gPC0gVVMuZXZpY3Rpb25zXG5cbmV2aWN0aW9uLjIwMTYgPC0gZXZpY3Rpb24gJT4lXG4gIGZpbHRlcih5ZWFyID09IDIwMTYpXG5cbmxlbmd0aCh1bmlxdWUoY292aWQkY291bnR5RklQUykpXG5sZW5ndGgodW5pcXVlKGV2aWN0aW9uLjIwMTYkR0VPSUQpKVxuXG5zdHIoZXZpY3Rpb24uMjAxNiRHRU9JRClcbnN0cihjb3ZpZCRjb3VudHlGSVBTKVxuXG5ldmljdGlvbi4yMDE2JEdFT0lEIDwtIGFzLm51bWVyaWMoZXZpY3Rpb24uMjAxNiRHRU9JRClcbiAgXG5jb3ZpZC5ldmljdGlvbiA8LSBpbm5lcl9qb2luKGV2aWN0aW9uLjIwMTZbLCAtYygzOjUpXSwgY292aWQsXG4gICAgICAgICAgYnkgPSBjKFwiR0VPSURcIiA9IFwiY291bnR5RklQU1wiKSlcblxuIyB3cml0ZV9jc3YoY292aWQuZXZpY3Rpb24sIFwiY292aWRfZXZpY3Rpb24yLmNzdlwiKVxuXG5gYGAifQ== -->
+<pre class="r"><code>covid.eviction &lt;- read_csv(&#39;covid_eviction.csv&#39;)
+
+US.evictions &lt;- read_csv(&#39;counties_us.csv&#39;)
+
+eviction &lt;- US.evictions
+
+eviction.2016 &lt;- eviction %&gt;%
+  filter(year == 2016)
+
+length(unique(covid$countyFIPS))
+length(unique(eviction.2016$GEOID))
+
+str(eviction.2016$GEOID)
+str(covid$countyFIPS)
+
+eviction.2016$GEOID &lt;- as.numeric(eviction.2016$GEOID)
+  
+covid.eviction &lt;- inner_join(eviction.2016[, -c(3:5)], covid,
+          by = c(&quot;GEOID&quot; = &quot;countyFIPS&quot;))
+
+# write_csv(covid.eviction, &quot;covid_eviction2.csv&quot;)
 </code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiIG51bSBbMTozMTQzXSAxMDAxIDEwMDMgMTAwNSAxMDA3IDEwMDkgLi4uXG4ifQ== -->
-<pre><code> num [1:3143] 1001 1003 1005 1007 1009 ...</code></pre>
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="section-4" class="section level2">
+<h2>05/14/2020 ——————————————————————–</h2>
+</div>
+<div id="lm" class="section level1">
+<h1>LM</h1>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShyZWFkeGwpXG5saWJyYXJ5KHRpZHl2ZXJzZSlcbmNvdmlkLmV2aWN0aW9uIDwtIHJlYWRfY3N2KCdjb3ZpZF9ldmljdGlvbjIuY3N2JylcbmBgYCJ9 -->
+<pre class="r"><code>library(readxl)
+library(tidyverse)
+covid.eviction &lt;- read_csv(&#39;covid_eviction2.csv&#39;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>simple lm: covid case rate against eviction filing rate</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTEpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm1)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCwgXG4gICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uKVxuXG5SZXNpZHVhbHM6XG4gICAgICBNaW4gICAgICAgIDFRICAgIE1lZGlhbiAgICAgICAgM1EgICAgICAgTWF4IFxuLTAuMDA0NTAyIC0wLjAwMTEwNyAtMC4wMDA3ODQgLTAuMDAwMTI2ICAwLjA2MTM3MSBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICAgICAgICAgICAgRXN0aW1hdGUgU3RkLiBFcnJvciB0IHZhbHVlIFByKD58dHwpICAgIFxuKEludGVyY2VwdCkgICAgICAgICAgICAxLjEyMWUtMDMgIDcuMDYyZS0wNSAgMTUuODc1ICA8IDJlLTE2ICoqKlxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCA5LjE4NWUtMDUgIDEuMjEzZS0wNSAgIDcuNTczIDQuOTVlLTE0ICoqKlxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjAwMzExOSBvbiAyNzA3IGRlZ3JlZXMgb2YgZnJlZWRvbVxuICAoNDMyIG9ic2VydmF0aW9ucyBkZWxldGVkIGR1ZSB0byBtaXNzaW5nbmVzcylcbk11bHRpcGxlIFItc3F1YXJlZDogIDAuMDIwNzUsXHRBZGp1c3RlZCBSLXNxdWFyZWQ6ICAwLjAyMDM5IFxuRi1zdGF0aXN0aWM6IDU3LjM2IG9uIDEgYW5kIDI3MDcgREYsICBwLXZhbHVlOiA0Ljk1NWUtMTRcbiJ9 -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate`, 
+    data = covid.eviction)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.004502 -0.001107 -0.000784 -0.000126  0.061371 
+
+Coefficients:
+                        Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            1.121e-03  7.062e-05  15.875  &lt; 2e-16 ***
+`eviction-filing-rate` 9.185e-05  1.213e-05   7.573 4.95e-14 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003119 on 2707 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.02075,   Adjusted R-squared:  0.02039 
+F-statistic: 57.36 on 1 and 2707 DF,  p-value: 4.955e-14</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>significant Rsq What other measures do we need to compare this to other models?</p>
+<p>graph it to see what the slope looks like:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-plot-begin eyJjb25kaXRpb25zIjpbWzEsIlJlbW92ZWQgNDMyIHJvd3MgY29udGFpbmluZyBtaXNzaW5nIHZhbHVlcyAoZ2VvbV9wb2ludCkuIl1dLCJoZWlnaHQiOjQzMi42MzI5LCJzaXplX2JlaGF2aW9yIjowLCJ3aWR0aCI6NzAwfQ== -->
+<p><img src="data:image/png;base64,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" /></p>
+<!-- rnb-plot-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Are there outliers I need to remove?</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYm94cGxvdC5zdGF0cyhjb3ZpZC5ldmljdGlvbiRgZXZpY3Rpb24tZmlsaW5nLXJhdGVgKSRvdXRcblxuYGBgIn0= -->
+<pre class="r"><code>boxplot.stats(covid.eviction$`eviction-filing-rate`)$out
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICBbMV0gICA5LjMwICAgOS43NSAgMTguMTUgIDE2LjA4ICAxNC42NCAgMTUuNjcgIDE5LjE4ICAxMC4xMCAgMTMuMjkgIDE1LjMyICAxMi4zMyAgMTYuNDkgIDEyLjc5XG4gWzE0XSAgMTYuMDMgIDExLjA5ICAxOC4xNCAgMTEuODcgIDQyLjc5ICAxNy44OSAgIDkuMzQgIDEzLjY1ICAgOS42MiAgIDkuMjEgIDIyLjg3ICAxMS45NiAgMTIuMDZcbiBbMjddICAxMi40MCAgMTUuOTYgIDE4Ljk3ICAxMS4wMiAgMjIuMTcgIDMwLjExICAxMi4zNiAgMTAuNzEgIDEyLjY5ICAxNS41MSAgIDkuNDMgIDE2LjkyICAgOS45NVxuIFs0MF0gIDEzLjAwICAxNC45NyAgMTguODggIDEyLjY3ICAyMi4yMyAgMjYuNTIgIDEwLjA5ICAxMy42OSAgMjUuNzQgIDExLjYzICAxMC4wMCAgMTkuMzQgICA5LjQ4XG4gWzUzXSAgMTIuNDUgIDEyLjYzICAxMi4wNiAgMTYuMzUgIDE2LjQzICAgOS4yNSAgMTEuNDMgIDE3LjMxICAgOS4xMCAgIDkuNjkgICA5LjczICAxMC40NiAgMTEuMDhcbiBbNjZdIDEwOS4xNiAgMTAuNjYgIDE1LjU1ICAgOS44MyAgMTMuNDAgICA5LjYwICAxNy42OCAgMTMuNTcgIDE1LjQ4ICAgOS45MCAgMTYuOTMgIDE0LjkxICAxMi44OVxuIFs3OV0gIDEyLjY1ICAyMC40MyAgMTcuODUgIDE5LjIzICAxMy4yNSAgIDkuODUgICA5LjE1ICAxMC43MSAgMTAuMzIgIDE5LjA1ICAxMi4xNyAgMTAuMjMgIDEwLjYxXG4gWzkyXSAgMTAuNTQgIDE1LjAwICAgOS45OCAgMTcuNjggIDE0LjIzICAxNC40MSAgMTYuMDcgIDE1Ljc0ICAyMS43OSAgMTEuNjcgIDE1LjY2ICAxMC40NCAgIDkuNTlcblsxMDVdICAxMi42MyAgMTUuMjQgICA5LjM4ICAxMi4xOSAgMTEuMzYgIDE4Ljc1ICAxMS4wOCAgMTQuMjggIDEwLjI1ICAxNC4wNCAgMTcuOTIgIDE1Ljk5ICAxNC45MlxuWzExOF0gIDEwLjA3ICAxOC43MCAgMTAuMzAgIDE1LjU5ICAxNi40MyAgMTMuOTggICA5LjY3ICAxMC40NiAgMTkuMjQgIDEwLjEyICAxMS4wMyAgMjAuMDQgICA5Ljk2XG5bMTMxXSAgMTAuMDIgIDExLjE4ICAgOS41NCAgMTMuMzMgIDEwLjg1ICAgOS44NSAgMTMuMzkgIDE1LjA0ICAxNi4zNiAgMTAuMjYgIDE2LjgyICAyMy43OCAgMTguNzFcblsxNDRdICAzMC43OSAgMTQuOTMgICA5Ljg5ICAxNC43MCAgMTguNzggIDE3Ljc1ICAyOS43MyAgMTAuMTcgIDM5LjA2ICAxNi40NSAgMjQuNTQgIDEzLjE4ICAxMi43MlxuWzE1N10gIDE0Ljk2ICAyMy40MCAgMTEuNDMgIDE3LjQxICAyOC42NyAgMTMuNDMgIDEyLjg5ICAyNy4wNCAgMTUuMDQgIDEyLjM4ICAxNC41NSAgMTAuNzkgICA5LjA3XG5bMTcwXSAgMjQuOTUgIDE4Ljc2ICAxMC4yNyAgIDkuMzAgIDI0LjcyICAxOC4wMyAgMzQuMjUgIDExLjkyICAxMS42MyAgMTQuMjMgIDEwLjUzICAxMy43MyAgMTUuNjNcblsxODNdICAyMy42OCAgMTkuMDAgICA5Ljc2ICAxOS44NCAgMTYuNTYgIDM3LjI1ICAzMC41MSAgIDkuNTYgIDM0LjEwICAyNy42MiAgNDQuOTggIDM3LjUwICAzNS42NlxuWzE5Nl0gIDMwLjk1ICAxMC40MSAgMTIuMDkgIDIzLjQzICAyMC42NSAgMTIuMjMgIDEyLjEyICAxMi4wMVxuIn0= -->
+<pre><code>  [1]   9.30   9.75  18.15  16.08  14.64  15.67  19.18  10.10  13.29  15.32  12.33  16.49  12.79
+ [14]  16.03  11.09  18.14  11.87  42.79  17.89   9.34  13.65   9.62   9.21  22.87  11.96  12.06
+ [27]  12.40  15.96  18.97  11.02  22.17  30.11  12.36  10.71  12.69  15.51   9.43  16.92   9.95
+ [40]  13.00  14.97  18.88  12.67  22.23  26.52  10.09  13.69  25.74  11.63  10.00  19.34   9.48
+ [53]  12.45  12.63  12.06  16.35  16.43   9.25  11.43  17.31   9.10   9.69   9.73  10.46  11.08
+ [66] 109.16  10.66  15.55   9.83  13.40   9.60  17.68  13.57  15.48   9.90  16.93  14.91  12.89
+ [79]  12.65  20.43  17.85  19.23  13.25   9.85   9.15  10.71  10.32  19.05  12.17  10.23  10.61
+ [92]  10.54  15.00   9.98  17.68  14.23  14.41  16.07  15.74  21.79  11.67  15.66  10.44   9.59
+[105]  12.63  15.24   9.38  12.19  11.36  18.75  11.08  14.28  10.25  14.04  17.92  15.99  14.92
+[118]  10.07  18.70  10.30  15.59  16.43  13.98   9.67  10.46  19.24  10.12  11.03  20.04   9.96
+[131]  10.02  11.18   9.54  13.33  10.85   9.85  13.39  15.04  16.36  10.26  16.82  23.78  18.71
+[144]  30.79  14.93   9.89  14.70  18.78  17.75  29.73  10.17  39.06  16.45  24.54  13.18  12.72
+[157]  14.96  23.40  11.43  17.41  28.67  13.43  12.89  27.04  15.04  12.38  14.55  10.79   9.07
+[170]  24.95  18.76  10.27   9.30  24.72  18.03  34.25  11.92  11.63  14.23  10.53  13.73  15.63
+[183]  23.68  19.00   9.76  19.84  16.56  37.25  30.51   9.56  34.10  27.62  44.98  37.50  35.66
+[196]  30.95  10.41  12.09  23.43  20.65  12.23  12.12  12.01</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>eh nevermind</p>
+<p>Add controls for poverty rate:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTIpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm2)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwb3ZlcnR5LXJhdGVgLCBkYXRhID0gY292aWQuZXZpY3Rpb24pXG5cblJlc2lkdWFsczpcbiAgICAgIE1pbiAgICAgICAgMVEgICAgTWVkaWFuICAgICAgICAzUSAgICAgICBNYXggXG4tMC4wMDQ1NjcgLTAuMDAxMDY1IC0wLjAwMDc0NCAtMC4wMDAwODIgIDAuMDYxMDYwIFxuXG5Db2VmZmljaWVudHM6XG4gICAgICAgICAgICAgICAgICAgICAgICBFc3RpbWF0ZSBTdGQuIEVycm9yIHQgdmFsdWUgUHIoPnx0fCkgICAgXG4oSW50ZXJjZXB0KSAgICAgICAgICAgIDYuODA1ZS0wNCAgMS40MzllLTA0ICAgNC43MzAgMi4zNmUtMDYgKioqXG5gZXZpY3Rpb24tZmlsaW5nLXJhdGVgIDguODc3ZS0wNSAgMS4yMTNlLTA1ICAgNy4zMTYgMy4zNGUtMTMgKioqXG5gcG92ZXJ0eS1yYXRlYCAgICAgICAgIDMuNzM5ZS0wNSAgMS4wNjRlLTA1ICAgMy41MTMgMC4wMDA0NTEgKioqXG4tLS1cblNpZ25pZi4gY29kZXM6ICAwIOKAmCoqKuKAmSAwLjAwMSDigJgqKuKAmSAwLjAxIOKAmCrigJkgMC4wNSDigJgu4oCZIDAuMSDigJgg4oCZIDFcblxuUmVzaWR1YWwgc3RhbmRhcmQgZXJyb3I6IDAuMDAzMTEzIG9uIDI3MDYgZGVncmVlcyBvZiBmcmVlZG9tXG4gICg0MzIgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzKVxuTXVsdGlwbGUgUi1zcXVhcmVkOiAgMC4wMjUxOSxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuMDI0NDcgXG5GLXN0YXRpc3RpYzogMzQuOTcgb24gMiBhbmQgMjcwNiBERiwgIHAtdmFsdWU6IDEuMDE1ZS0xNVxuIn0= -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `poverty-rate`, data = covid.eviction)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.004567 -0.001065 -0.000744 -0.000082  0.061060 
+
+Coefficients:
+                        Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            6.805e-04  1.439e-04   4.730 2.36e-06 ***
+`eviction-filing-rate` 8.877e-05  1.213e-05   7.316 3.34e-13 ***
+`poverty-rate`         3.739e-05  1.064e-05   3.513 0.000451 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003113 on 2706 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.02519,   Adjusted R-squared:  0.02447 
+F-statistic: 34.97 on 2 and 2706 DF,  p-value: 1.015e-15</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Adjusted R-sq increased all variables significant</p>
+<p>Try with additional income variables:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTMpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm3)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwb3ZlcnR5LXJhdGVgICsgYHJlbnRlci1vY2N1cGllZC1ob3VzZWhvbGRzYCwgZGF0YSA9IGNvdmlkLmV2aWN0aW9uKVxuXG5SZXNpZHVhbHM6XG4gICAgICBNaW4gICAgICAgIDFRICAgIE1lZGlhbiAgICAgICAgM1EgICAgICAgTWF4IFxuLTAuMDEzMzMxIC0wLjAwMTAxOSAtMC4wMDA3MTIgLTAuMDAwMDY4ICAwLjA2MTExNSBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgRXN0aW1hdGUgU3RkLiBFcnJvciB0IHZhbHVlIFByKD58dHwpICAgIFxuKEludGVyY2VwdCkgICAgICAgICAgICAgICAgICA1Ljk5MmUtMDQgIDEuNDI4ZS0wNCAgIDQuMTk2IDIuODBlLTA1ICoqKlxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCAgICAgICA3LjQ0NmUtMDUgIDEuMjE2ZS0wNSAgIDYuMTI0IDEuMDVlLTA5ICoqKlxuYHBvdmVydHktcmF0ZWAgICAgICAgICAgICAgICAzLjgzMmUtMDUgIDEuMDU0ZS0wNSAgIDMuNjM3IDAuMDAwMjgxICoqKlxuYHJlbnRlci1vY2N1cGllZC1ob3VzZWhvbGRzYCA4LjA2MWUtMDkgIDEuMDY4ZS0wOSAgIDcuNTQ2IDYuMDhlLTE0ICoqKlxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjAwMzA4MSBvbiAyNzA1IGRlZ3JlZXMgb2YgZnJlZWRvbVxuICAoNDMyIG9ic2VydmF0aW9ucyBkZWxldGVkIGR1ZSB0byBtaXNzaW5nbmVzcylcbk11bHRpcGxlIFItc3F1YXJlZDogIDAuMDQ1MjksXHRBZGp1c3RlZCBSLXNxdWFyZWQ6ICAwLjA0NDIzIFxuRi1zdGF0aXN0aWM6IDQyLjc4IG9uIDMgYW5kIDI3MDUgREYsICBwLXZhbHVlOiA8IDIuMmUtMTZcbiJ9 -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `poverty-rate` + `renter-occupied-households`, data = covid.eviction)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.013331 -0.001019 -0.000712 -0.000068  0.061115 
+
+Coefficients:
+                              Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                  5.992e-04  1.428e-04   4.196 2.80e-05 ***
+`eviction-filing-rate`       7.446e-05  1.216e-05   6.124 1.05e-09 ***
+`poverty-rate`               3.832e-05  1.054e-05   3.637 0.000281 ***
+`renter-occupied-households` 8.061e-09  1.068e-09   7.546 6.08e-14 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003081 on 2705 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.04529,   Adjusted R-squared:  0.04423 
+F-statistic: 42.78 on 3 and 2705 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Adjusted R squared just doubled. Is renter occupied households just increasing bc its not a rate? (greater pop -&gt; greater renter pop)</p>
+<p>Will try control:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTQpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm4)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwb3ZlcnR5LXJhdGVgICsgcmVudGVyX3JhdGUsIGRhdGEgPSBjb3ZpZC5ldmljdGlvbjIpXG5cblJlc2lkdWFsczpcbiAgICAgIE1pbiAgICAgICAgMVEgICAgTWVkaWFuICAgICAgICAzUSAgICAgICBNYXggXG4tMC4wMDUwMjAgLTAuMDAxMDc3IC0wLjAwMDcyOSAtMC4wMDAwNzEgIDAuMDYxMjYzIFxuXG5Db2VmZmljaWVudHM6XG4gICAgICAgICAgICAgICAgICAgICAgICBFc3RpbWF0ZSBTdGQuIEVycm9yIHQgdmFsdWUgUHIoPnx0fCkgICAgXG4oSW50ZXJjZXB0KSAgICAgICAgICAgIDEuMzUyZS0wNCAgMi4zODVlLTA0ICAgMC41NjcgIDAuNTcxMDYgICAgXG5gZXZpY3Rpb24tZmlsaW5nLXJhdGVgIDguMzg3ZS0wNSAgMS4yMjRlLTA1ICAgNi44NTMgOC45MmUtMTIgKioqXG5gcG92ZXJ0eS1yYXRlYCAgICAgICAgIDMuMTEwZS0wNSAgMS4wODVlLTA1ICAgMi44NjUgIDAuMDA0MjAgKiogXG5yZW50ZXJfcmF0ZSAgICAgICAgICAgIDUuMzcwZS0wMyAgMS44NzVlLTAzICAgMi44NjQgIDAuMDA0MjIgKiogXG4tLS1cblNpZ25pZi4gY29kZXM6ICAwIOKAmCoqKuKAmSAwLjAwMSDigJgqKuKAmSAwLjAxIOKAmCrigJkgMC4wNSDigJgu4oCZIDAuMSDigJgg4oCZIDFcblxuUmVzaWR1YWwgc3RhbmRhcmQgZXJyb3I6IDAuMDAzMTA4IG9uIDI3MDUgZGVncmVlcyBvZiBmcmVlZG9tXG4gICg0MzIgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzKVxuTXVsdGlwbGUgUi1zcXVhcmVkOiAgMC4wMjgxNCxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuMDI3MDYgXG5GLXN0YXRpc3RpYzogMjYuMTEgb24gMyBhbmQgMjcwNSBERiwgIHAtdmFsdWU6IDwgMi4yZS0xNlxuIn0= -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `poverty-rate` + renter_rate, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.005020 -0.001077 -0.000729 -0.000071  0.061263 
+
+Coefficients:
+                        Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            1.352e-04  2.385e-04   0.567  0.57106    
+`eviction-filing-rate` 8.387e-05  1.224e-05   6.853 8.92e-12 ***
+`poverty-rate`         3.110e-05  1.085e-05   2.865  0.00420 ** 
+renter_rate            5.370e-03  1.875e-03   2.864  0.00422 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003108 on 2705 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.02814,   Adjusted R-squared:  0.02706 
+F-statistic: 26.11 on 3 and 2705 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>decreases Adj r-sq but still higher than simple or just eviction filing and poverty rate lm. will go with this.</p>
+<p>Add more variables:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTUpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm5)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwb3ZlcnR5LXJhdGVgICsgcmVudGVyX3JhdGUgKyBgcmVudC1idXJkZW5gLCBkYXRhID0gY292aWQuZXZpY3Rpb24yKVxuXG5SZXNpZHVhbHM6XG4gICAgICBNaW4gICAgICAgIDFRICAgIE1lZGlhbiAgICAgICAgM1EgICAgICAgTWF4IFxuLTAuMDA0Nzg1IC0wLjAwMTA3OCAtMC4wMDA3MDMgLTAuMDAwMDgxICAwLjA2MTIxMyBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICAgICAgICAgICAgIEVzdGltYXRlIFN0ZC4gRXJyb3IgdCB2YWx1ZSBQcig+fHR8KSAgICBcbihJbnRlcmNlcHQpICAgICAgICAgICAgLTcuNzYwZS0wNCAgNC4xMTJlLTA0ICAtMS44ODcgIDAuMDU5MjYgLiAgXG5gZXZpY3Rpb24tZmlsaW5nLXJhdGVgICA3LjUzNWUtMDUgIDEuMjYyZS0wNSAgIDUuOTcyIDIuNjZlLTA5ICoqKlxuYHBvdmVydHktcmF0ZWAgICAgICAgICAgMS45OTdlLTA1ICAxLjE1OWUtMDUgICAxLjcyMyAgMC4wODUwMyAuICBcbnJlbnRlcl9yYXRlICAgICAgICAgICAgIDQuOTg0ZS0wMyAgMS44NzhlLTAzICAgMi42NTMgIDAuMDA4MDIgKiogXG5gcmVudC1idXJkZW5gICAgICAgICAgICAzLjk0NGUtMDUgIDEuNDUxZS0wNSAgIDIuNzE4ICAwLjAwNjYwICoqIFxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjAwMzEwNSBvbiAyNzA0IGRlZ3JlZXMgb2YgZnJlZWRvbVxuICAoNDMyIG9ic2VydmF0aW9ucyBkZWxldGVkIGR1ZSB0byBtaXNzaW5nbmVzcylcbk11bHRpcGxlIFItc3F1YXJlZDogIDAuMDMwNzksXHRBZGp1c3RlZCBSLXNxdWFyZWQ6ICAwLjAyOTM2IFxuRi1zdGF0aXN0aWM6IDIxLjQ3IG9uIDQgYW5kIDI3MDQgREYsICBwLXZhbHVlOiA8IDIuMmUtMTZcbiJ9 -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `poverty-rate` + renter_rate + `rent-burden`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.004785 -0.001078 -0.000703 -0.000081  0.061213 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            -7.760e-04  4.112e-04  -1.887  0.05926 .  
+`eviction-filing-rate`  7.535e-05  1.262e-05   5.972 2.66e-09 ***
+`poverty-rate`          1.997e-05  1.159e-05   1.723  0.08503 .  
+renter_rate             4.984e-03  1.878e-03   2.653  0.00802 ** 
+`rent-burden`           3.944e-05  1.451e-05   2.718  0.00660 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003105 on 2704 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.03079,   Adjusted R-squared:  0.02936 
+F-statistic: 21.47 on 4 and 2704 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Rent burden seems to make poverty rate insignificant. Prob bc they kind of represent the same thing. Try taking out poverty rate:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTYpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm6)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIHJlbnRlcl9yYXRlICsgYHJlbnQtYnVyZGVuYCwgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMilcblxuUmVzaWR1YWxzOlxuICAgICAgTWluICAgICAgICAxUSAgICBNZWRpYW4gICAgICAgIDNRICAgICAgIE1heCBcbi0wLjAwNDY0OCAtMC4wMDEwODEgLTAuMDAwNzA1IC0wLjAwMDA5NSAgMC4wNjEzNjQgXG5cbkNvZWZmaWNpZW50czpcbiAgICAgICAgICAgICAgICAgICAgICAgICBFc3RpbWF0ZSBTdGQuIEVycm9yIHQgdmFsdWUgUHIoPnx0fCkgICAgXG4oSW50ZXJjZXB0KSAgICAgICAgICAgIC04LjQ0NmUtMDQgIDQuMDk1ZS0wNCAgLTIuMDYzIDAuMDM5MjIyICogIFxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCAgNy40MjdlLTA1ICAxLjI2MWUtMDUgICA1Ljg5MSA0LjMyZS0wOSAqKipcbnJlbnRlcl9yYXRlICAgICAgICAgICAgIDUuNTA4ZS0wMyAgMS44NTRlLTAzICAgMi45NzEgMC4wMDI5OTkgKiogXG5gcmVudC1idXJkZW5gICAgICAgICAgICA0LjgyOGUtMDUgIDEuMzU4ZS0wNSAgIDMuNTU2IDAuMDAwMzg0ICoqKlxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjAwMzEwNiBvbiAyNzA1IGRlZ3JlZXMgb2YgZnJlZWRvbVxuICAoNDMyIG9ic2VydmF0aW9ucyBkZWxldGVkIGR1ZSB0byBtaXNzaW5nbmVzcylcbk11bHRpcGxlIFItc3F1YXJlZDogIDAuMDI5NzMsXHRBZGp1c3RlZCBSLXNxdWFyZWQ6ICAwLjAyODY1IFxuRi1zdGF0aXN0aWM6IDI3LjYyIG9uIDMgYW5kIDI3MDUgREYsICBwLXZhbHVlOiA8IDIuMmUtMTZcbiJ9 -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    renter_rate + `rent-burden`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.004648 -0.001081 -0.000705 -0.000095  0.061364 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            -8.446e-04  4.095e-04  -2.063 0.039222 *  
+`eviction-filing-rate`  7.427e-05  1.261e-05   5.891 4.32e-09 ***
+renter_rate             5.508e-03  1.854e-03   2.971 0.002999 ** 
+`rent-burden`           4.828e-05  1.358e-05   3.556 0.000384 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003106 on 2705 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.02973,   Adjusted R-squared:  0.02865 
+F-statistic: 27.62 on 3 and 2705 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Other demo variables pct-af-am:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTcpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm7)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIHJlbnRlcl9yYXRlICsgYHJlbnQtYnVyZGVuYCArIGBwY3QtYWYtYW1gLCBkYXRhID0gY292aWQuZXZpY3Rpb24yKVxuXG5SZXNpZHVhbHM6XG4gICAgICBNaW4gICAgICAgIDFRICAgIE1lZGlhbiAgICAgICAgM1EgICAgICAgTWF4IFxuLTAuMDA1MjcxIC0wLjAwMDk0NCAtMC4wMDA2NjQgLTAuMDAwMTAyICAwLjA2MDQwMSBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICAgICAgICAgICAgRXN0aW1hdGUgU3RkLiBFcnJvciB0IHZhbHVlIFByKD58dHwpICAgIFxuKEludGVyY2VwdCkgICAgICAgICAgICA2LjM2OGUtMDUgIDQuMjA1ZS0wNCAgIDAuMTUxICAwLjg3OTY0ICAgIFxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCAzLjkzM2UtMDUgIDEuMzIxZS0wNSAgIDIuOTc3ICAwLjAwMjkzICoqIFxucmVudGVyX3JhdGUgICAgICAgICAgICAzLjA4OGUtMDMgIDEuODU4ZS0wMyAgIDEuNjYyICAwLjA5NjYzIC4gIFxuYHJlbnQtYnVyZGVuYCAgICAgICAgICAxLjg2MGUtMDUgIDEuMzkzZS0wNSAgIDEuMzM1ICAwLjE4MTg4ICAgIFxuYHBjdC1hZi1hbWAgICAgICAgICAgICAzLjg3MWUtMDUgIDQuODUxZS0wNiAgIDcuOTc5IDIuMTZlLTE1ICoqKlxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjAwMzA3MSBvbiAyNzA0IGRlZ3JlZXMgb2YgZnJlZWRvbVxuICAoNDMyIG9ic2VydmF0aW9ucyBkZWxldGVkIGR1ZSB0byBtaXNzaW5nbmVzcylcbk11bHRpcGxlIFItc3F1YXJlZDogIDAuMDUyMDQsXHRBZGp1c3RlZCBSLXNxdWFyZWQ6ICAwLjA1MDY0IFxuRi1zdGF0aXN0aWM6IDM3LjExIG9uIDQgYW5kIDI3MDQgREYsICBwLXZhbHVlOiA8IDIuMmUtMTZcbiJ9 -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    renter_rate + `rent-burden` + `pct-af-am`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.005271 -0.000944 -0.000664 -0.000102  0.060401 
+
+Coefficients:
+                        Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            6.368e-05  4.205e-04   0.151  0.87964    
+`eviction-filing-rate` 3.933e-05  1.321e-05   2.977  0.00293 ** 
+renter_rate            3.088e-03  1.858e-03   1.662  0.09663 .  
+`rent-burden`          1.860e-05  1.393e-05   1.335  0.18188    
+`pct-af-am`            3.871e-05  4.851e-06   7.979 2.16e-15 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003071 on 2704 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.05204,   Adjusted R-squared:  0.05064 
+F-statistic: 37.11 on 4 and 2704 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>drastically increases adj r-sq, and rent-related variables become insignificant.</p>
+<p>Remove those rent variables:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTgpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm8)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwY3QtYWYtYW1gLCBkYXRhID0gY292aWQuZXZpY3Rpb24yKVxuXG5SZXNpZHVhbHM6XG4gICAgICBNaW4gICAgICAgIDFRICAgIE1lZGlhbiAgICAgICAgM1EgICAgICAgTWF4IFxuLTAuMDA1MDk5IC0wLjAwMDkzMiAtMC4wMDA2NzUgLTAuMDAwMTI0ICAwLjA2MDI5MCBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICAgICAgICAgICAgRXN0aW1hdGUgU3RkLiBFcnJvciB0IHZhbHVlIFByKD58dHwpICAgIFxuKEludGVyY2VwdCkgICAgICAgICAgICA5LjE2MGUtMDQgIDcuMzA2ZS0wNSAgMTIuNTM3ICA8IDJlLTE2ICoqKlxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCA0LjMxOGUtMDUgIDEuMzA3ZS0wNSAgIDMuMzA0IDAuMDAwOTY3ICoqKlxuYHBjdC1hZi1hbWAgICAgICAgICAgICA0LjIwOGUtMDUgIDQuNTg3ZS0wNiAgIDkuMTc1ICA8IDJlLTE2ICoqKlxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAwLjAwMzA3MiBvbiAyNzA2IGRlZ3JlZXMgb2YgZnJlZWRvbVxuICAoNDMyIG9ic2VydmF0aW9ucyBkZWxldGVkIGR1ZSB0byBtaXNzaW5nbmVzcylcbk11bHRpcGxlIFItc3F1YXJlZDogIDAuMDUwMjksXHRBZGp1c3RlZCBSLXNxdWFyZWQ6ICAwLjA0OTU5IFxuRi1zdGF0aXN0aWM6IDcxLjY1IG9uIDIgYW5kIDI3MDYgREYsICBwLXZhbHVlOiA8IDIuMmUtMTZcbiJ9 -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `pct-af-am`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.005099 -0.000932 -0.000675 -0.000124  0.060290 
+
+Coefficients:
+                        Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            9.160e-04  7.306e-05  12.537  &lt; 2e-16 ***
+`eviction-filing-rate` 4.318e-05  1.307e-05   3.304 0.000967 ***
+`pct-af-am`            4.208e-05  4.587e-06   9.175  &lt; 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003072 on 2706 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.05029,   Adjusted R-squared:  0.04959 
+F-statistic: 71.65 on 2 and 2706 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>adj R-sq decreases slightly but i think the model is better.</p>
+<p>Add all other race-related variables:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTkpXG5cbmBgYCJ9 -->
+<pre class="r"><code>summary(lm9)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwY3QtYWYtYW1gICsgYHBjdC1oaXNwYW5pY2AgKyBgcGN0LWFtLWluZGAgKyBgcGN0LXdoaXRlYCArIFxuICAgIGBwY3QtYXNpYW5gICsgYHBjdC1uaC1waWAsIGRhdGEgPSBjb3ZpZC5ldmljdGlvbjIpXG5cblJlc2lkdWFsczpcbiAgICAgIE1pbiAgICAgICAgMVEgICAgTWVkaWFuICAgICAgICAzUSAgICAgICBNYXggXG4tMC4wMDgxMzAgLTAuMDAwODYxIC0wLjAwMDUzMiAgMC4wMDAwMTQgIDAuMDYwNDI0IFxuXG5Db2VmZmljaWVudHM6XG4gICAgICAgICAgICAgICAgICAgICAgICAgRXN0aW1hdGUgU3RkLiBFcnJvciB0IHZhbHVlIFByKD58dHwpICAgIFxuKEludGVyY2VwdCkgICAgICAgICAgICAtMS4wMTdlLTAyICAzLjYzOWUtMDMgIC0yLjc5NCAwLjAwNTI0NCAqKiBcbmBldmljdGlvbi1maWxpbmctcmF0ZWAgIDMuMTEzZS0wNSAgMS4zMDhlLTA1ICAgMi4zNzkgMC4wMTc0MzIgKiAgXG5gcGN0LWFmLWFtYCAgICAgICAgICAgICAxLjUxOWUtMDQgIDMuNjczZS0wNSAgIDQuMTM2IDMuNjRlLTA1ICoqKlxuYHBjdC1oaXNwYW5pY2AgICAgICAgICAgMS4yOTllLTA0ICAzLjY4N2UtMDUgICAzLjUyMyAwLjAwMDQzNCAqKipcbmBwY3QtYW0taW5kYCAgICAgICAgICAgIDEuMDk1ZS0wNCAgNC4wOTJlLTA1ICAgMi42NzYgMC4wMDc1MDMgKiogXG5gcGN0LXdoaXRlYCAgICAgICAgICAgICAxLjA5MWUtMDQgIDMuNjk4ZS0wNSAgIDIuOTQ5IDAuMDAzMjE1ICoqIFxuYHBjdC1hc2lhbmAgICAgICAgICAgICAgMy4yODJlLTA0ICA0Ljk1NGUtMDUgICA2LjYyNiA0LjE1ZS0xMSAqKipcbmBwY3QtbmgtcGlgICAgICAgICAgICAgLTEuMzk3ZS0wNCAgOS4xMTllLTA1ICAtMS41MzIgMC4xMjU1ODMgICAgXG4tLS1cblNpZ25pZi4gY29kZXM6ICAwIOKAmCoqKuKAmSAwLjAwMSDigJgqKuKAmSAwLjAxIOKAmCrigJkgMC4wNSDigJgu4oCZIDAuMSDigJgg4oCZIDFcblxuUmVzaWR1YWwgc3RhbmRhcmQgZXJyb3I6IDAuMDAzMDEyIG9uIDI3MDEgZGVncmVlcyBvZiBmcmVlZG9tXG4gICg0MzIgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzKVxuTXVsdGlwbGUgUi1zcXVhcmVkOiAgMC4wODg3LFx0QWRqdXN0ZWQgUi1zcXVhcmVkOiAgMC4wODYzMyBcbkYtc3RhdGlzdGljOiAzNy41NSBvbiA3IGFuZCAyNzAxIERGLCAgcC12YWx1ZTogPCAyLjJlLTE2XG4ifQ== -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `pct-af-am` + `pct-hispanic` + `pct-am-ind` + `pct-white` + 
+    `pct-asian` + `pct-nh-pi`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.008130 -0.000861 -0.000532  0.000014  0.060424 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            -1.017e-02  3.639e-03  -2.794 0.005244 ** 
+`eviction-filing-rate`  3.113e-05  1.308e-05   2.379 0.017432 *  
+`pct-af-am`             1.519e-04  3.673e-05   4.136 3.64e-05 ***
+`pct-hispanic`          1.299e-04  3.687e-05   3.523 0.000434 ***
+`pct-am-ind`            1.095e-04  4.092e-05   2.676 0.007503 ** 
+`pct-white`             1.091e-04  3.698e-05   2.949 0.003215 ** 
+`pct-asian`             3.282e-04  4.954e-05   6.626 4.15e-11 ***
+`pct-nh-pi`            -1.397e-04  9.119e-05  -1.532 0.125583    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003012 on 2701 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.0887,    Adjusted R-squared:  0.08633 
+F-statistic: 37.55 on 7 and 2701 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Adj r-sq goes up but significance changes.</p>
+<p>Remove insignificant pct-nh-pi:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG0xMCA8LSBsbShjb3VudHlfY292aWRfY2FzZXNfcmF0ZSB+IGBldmljdGlvbi1maWxpbmctcmF0ZWAgKyBgcGN0LWFmLWFtYCArIGBwY3QtaGlzcGFuaWNgICsgYHBjdC1hbS1pbmRgICsgYHBjdC13aGl0ZWAgKyBgcGN0LWFzaWFuYCxcbiAgICAgICAgICBkYXRhID0gY292aWQuZXZpY3Rpb24yKVxuc3VtbWFyeShsbTEwKVxuXG5gYGAifQ== -->
+<pre class="r"><code>lm10 &lt;- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` + `pct-am-ind` + `pct-white` + `pct-asian`,
+          data = covid.eviction2)
+summary(lm10)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwY3QtYWYtYW1gICsgYHBjdC1oaXNwYW5pY2AgKyBgcGN0LWFtLWluZGAgKyBgcGN0LXdoaXRlYCArIFxuICAgIGBwY3QtYXNpYW5gLCBkYXRhID0gY292aWQuZXZpY3Rpb24yKVxuXG5SZXNpZHVhbHM6XG4gICAgICBNaW4gICAgICAgIDFRICAgIE1lZGlhbiAgICAgICAgM1EgICAgICAgTWF4IFxuLTAuMDA4MTI5IC0wLjAwMDg3MCAtMC4wMDA1MzcgIDAuMDAwMDE4ICAwLjA2MDQwNCBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgICAgICAgICAgICAgIEVzdGltYXRlIFN0ZC4gRXJyb3IgdCB2YWx1ZSBQcig+fHR8KSAgICBcbihJbnRlcmNlcHQpICAgICAgICAgICAgLTEuMjg0ZS0wMiAgMy4xOTVlLTAzICAtNC4wMTggNi4wM2UtMDUgKioqXG5gZXZpY3Rpb24tZmlsaW5nLXJhdGVgICAzLjMzMGUtMDUgIDEuMzAxZS0wNSAgIDIuNTYwIDAuMDEwNTMwICogIFxuYHBjdC1hZi1hbWAgICAgICAgICAgICAgMS43ODhlLTA0ICAzLjIyOWUtMDUgICA1LjUzNiAzLjM5ZS0wOCAqKipcbmBwY3QtaGlzcGFuaWNgICAgICAgICAgIDEuNTY5ZS0wNCAgMy4yMzdlLTA1ICAgNC44NDggMS4zMmUtMDYgKioqXG5gcGN0LWFtLWluZGAgICAgICAgICAgICAxLjM4NmUtMDQgIDMuNjI2ZS0wNSAgIDMuODIyIDAuMDAwMTM2ICoqKlxuYHBjdC13aGl0ZWAgICAgICAgICAgICAgMS4zNjJlLTA0ICAzLjI0OGUtMDUgICA0LjE5MyAyLjg0ZS0wNSAqKipcbmBwY3QtYXNpYW5gICAgICAgICAgICAgIDMuNDk0ZS0wNCAgNC43NTllLTA1ICAgNy4zNDEgMi43OWUtMTMgKioqXG4tLS1cblNpZ25pZi4gY29kZXM6ICAwIOKAmCoqKuKAmSAwLjAwMSDigJgqKuKAmSAwLjAxIOKAmCrigJkgMC4wNSDigJgu4oCZIDAuMSDigJgg4oCZIDFcblxuUmVzaWR1YWwgc3RhbmRhcmQgZXJyb3I6IDAuMDAzMDEzIG9uIDI3MDIgZGVncmVlcyBvZiBmcmVlZG9tXG4gICg0MzIgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzKVxuTXVsdGlwbGUgUi1zcXVhcmVkOiAgMC4wODc5LFx0QWRqdXN0ZWQgUi1zcXVhcmVkOiAgMC4wODU4OCBcbkYtc3RhdGlzdGljOiAgNDMuNCBvbiA2IGFuZCAyNzAyIERGLCAgcC12YWx1ZTogPCAyLjJlLTE2XG4ifQ== -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `pct-af-am` + `pct-hispanic` + `pct-am-ind` + `pct-white` + 
+    `pct-asian`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.008129 -0.000870 -0.000537  0.000018  0.060404 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            -1.284e-02  3.195e-03  -4.018 6.03e-05 ***
+`eviction-filing-rate`  3.330e-05  1.301e-05   2.560 0.010530 *  
+`pct-af-am`             1.788e-04  3.229e-05   5.536 3.39e-08 ***
+`pct-hispanic`          1.569e-04  3.237e-05   4.848 1.32e-06 ***
+`pct-am-ind`            1.386e-04  3.626e-05   3.822 0.000136 ***
+`pct-white`             1.362e-04  3.248e-05   4.193 2.84e-05 ***
+`pct-asian`             3.494e-04  4.759e-05   7.341 2.79e-13 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003013 on 2702 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.0879,    Adjusted R-squared:  0.08588 
+F-statistic:  43.4 on 6 and 2702 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>All race percentages are significant, but they’re also all positive, which means being any race makes for greater covid case rates. Some are higher than others, and mostly follow patterns as predicted. I’m going to try anova to see what it comes with.</p>
+<p>ANOVA:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYW92MSA8LSBhb3YoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBjdC1hZi1hbWAgKyBgcGN0LWhpc3BhbmljYCArIGBwY3QtYW0taW5kYCArIGBwY3Qtd2hpdGVgICsgYHBjdC1hc2lhbmAsXG4gICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMilcbnN1bW1hcnkoYW92MSlcbmBgYCJ9 -->
+<pre class="r"><code>aov1 &lt;- aov(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` + `pct-am-ind` + `pct-white` + `pct-asian`,
+          data = covid.eviction2)
+summary(aov1)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>remove pct-am-ind:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYW92MiA8LSBhb3YoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBjdC1hZi1hbWAgKyBgcGN0LWhpc3BhbmljYCArIGBwY3Qtd2hpdGVgICsgYHBjdC1hc2lhbmAsXG4gICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMilcbnN1bW1hcnkoYW92MilcbmBgYCJ9 -->
+<pre class="r"><code>aov2 &lt;- aov(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-af-am` + `pct-hispanic` + `pct-white` + `pct-asian`,
+          data = covid.eviction2)
+summary(aov2)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>remove pct white:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShhb3YzKVxuXG5gYGAifQ== -->
+<pre class="r"><code>summary(aov3)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICAgICAgICAgICAgIERmICAgU3VtIFNxICAgTWVhbiBTcSBGIHZhbHVlICAgUHIoPkYpICAgIFxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCAgICAxIDAuMDAwNTU4IDAuMDAwNTU4MCAgIDYxLjA5IDcuNzVlLTE1ICoqKlxuYHBjdC1hZi1hbWAgICAgICAgICAgICAgICAxIDAuMDAwNzk0IDAuMDAwNzk0NSAgIDg2Ljk3ICA8IDJlLTE2ICoqKlxuYHBjdC1oaXNwYW5pY2AgICAgICAgICAgICAxIDAuMDAwMzQyIDAuMDAwMzQyMCAgIDM3LjQ0IDEuMDhlLTA5ICoqKlxuYHBjdC1hc2lhbmAgICAgICAgICAgICAgICAxIDAuMDAwNDk5IDAuMDAwNDk5NCAgIDU0LjY3IDEuODllLTEzICoqKlxuUmVzaWR1YWxzICAgICAgICAgICAgICAyNzA0IDAuMDI0Njk5IDAuMDAwMDA5MSAgICAgICAgICAgICAgICAgICAgIFxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG40MzIgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzXG4ifQ== -->
+<pre><code>                         Df   Sum Sq   Mean Sq F value   Pr(&gt;F)    
+`eviction-filing-rate`    1 0.000558 0.0005580   61.09 7.75e-15 ***
+`pct-af-am`               1 0.000794 0.0007945   86.97  &lt; 2e-16 ***
+`pct-hispanic`            1 0.000342 0.0003420   37.44 1.08e-09 ***
+`pct-asian`               1 0.000499 0.0004994   54.67 1.89e-13 ***
+Residuals              2704 0.024699 0.0000091                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+432 observations deleted due to missingness</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>New long model:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTExKVxuXG5gYGAifQ== -->
+<pre class="r"><code>summary(lm11)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIFxuICAgIGBwY3QtYWYtYW1gICsgYHBjdC1oaXNwYW5pY2AgKyBgcGN0LWFzaWFuYCwgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMilcblxuUmVzaWR1YWxzOlxuICAgICAgTWluICAgICAgICAxUSAgICBNZWRpYW4gICAgICAgIDNRICAgICAgIE1heCBcbi0wLjAwNzQ0NSAtMC4wMDA4ODQgLTAuMDAwNTM3IC0wLjAwMDAxNCAgMC4wNjA1MDIgXG5cbkNvZWZmaWNpZW50czpcbiAgICAgICAgICAgICAgICAgICAgICAgIEVzdGltYXRlIFN0ZC4gRXJyb3IgdCB2YWx1ZSBQcig+fHR8KSAgICBcbihJbnRlcmNlcHQpICAgICAgICAgICAgNS4zMzZlLTA0ICA4LjQ2OWUtMDUgICA2LjMwMSAzLjQ0ZS0xMCAqKipcbmBldmljdGlvbi1maWxpbmctcmF0ZWAgMi45NDVlLTA1ICAxLjI5OWUtMDUgICAyLjI2NyAgIDAuMDIzNSAqICBcbmBwY3QtYWYtYW1gICAgICAgICAgICAgNC41MDdlLTA1ICA0LjUyOWUtMDYgICA5Ljk1MSAgPCAyZS0xNiAqKipcbmBwY3QtaGlzcGFuaWNgICAgICAgICAgMi4yODVlLTA1ICA0LjYzNWUtMDYgICA0LjkzMCA4LjcyZS0wNyAqKipcbmBwY3QtYXNpYW5gICAgICAgICAgICAgMS43NTVlLTA0ICAyLjM3M2UtMDUgICA3LjM5NCAxLjg5ZS0xMyAqKipcbi0tLVxuU2lnbmlmLiBjb2RlczogIDAg4oCYKioq4oCZIDAuMDAxIOKAmCoq4oCZIDAuMDEg4oCYKuKAmSAwLjA1IOKAmC7igJkgMC4xIOKAmCDigJkgMVxuXG5SZXNpZHVhbCBzdGFuZGFyZCBlcnJvcjogMC4wMDMwMjIgb24gMjcwNCBkZWdyZWVzIG9mIGZyZWVkb21cbiAgKDQzMiBvYnNlcnZhdGlvbnMgZGVsZXRlZCBkdWUgdG8gbWlzc2luZ25lc3MpXG5NdWx0aXBsZSBSLXNxdWFyZWQ6ICAwLjA4MTU4LFx0QWRqdXN0ZWQgUi1zcXVhcmVkOiAgMC4wODAyMiBcbkYtc3RhdGlzdGljOiA2MC4wNCBvbiA0IGFuZCAyNzA0IERGLCAgcC12YWx1ZTogPCAyLjJlLTE2XG4ifQ== -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` + 
+    `pct-af-am` + `pct-hispanic` + `pct-asian`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.007445 -0.000884 -0.000537 -0.000014  0.060502 
+
+Coefficients:
+                        Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            5.336e-04  8.469e-05   6.301 3.44e-10 ***
+`eviction-filing-rate` 2.945e-05  1.299e-05   2.267   0.0235 *  
+`pct-af-am`            4.507e-05  4.529e-06   9.951  &lt; 2e-16 ***
+`pct-hispanic`         2.285e-05  4.635e-06   4.930 8.72e-07 ***
+`pct-asian`            1.755e-04  2.373e-05   7.394 1.89e-13 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003022 on 2704 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.08158,   Adjusted R-squared:  0.08022 
+F-statistic: 60.04 on 4 and 2704 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Super high adj-rq (comparatively) All variables significant, but eviction becomes less significant shows that race seems to matter more than anything.</p>
+<p>Try interaction?</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShhb3Y0KVxuXG5gYGAifQ== -->
+<pre class="r"><code>summary(aov4)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIERmICAgU3VtIFNxICAgTWVhbiBTcSBGIHZhbHVlICAgUHIoPkYpICAgIFxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCAgICAgICAgICAgICAgICAxIDAuMDAwNTU4IDAuMDAwNTU4MCAgIDYxLjUxIDYuMjhlLTE1ICoqKlxuYHBjdC1hZi1hbWAgICAgICAgICAgICAgICAgICAgICAgICAgICAxIDAuMDAwNzk0IDAuMDAwNzk0NSAgIDg3LjU4ICA8IDJlLTE2ICoqKlxuYHBjdC1oaXNwYW5pY2AgICAgICAgICAgICAgICAgICAgICAgICAxIDAuMDAwMzQyIDAuMDAwMzQyMCAgIDM3LjcwIDkuNDZlLTEwICoqKlxuYHBjdC1hc2lhbmAgICAgICAgICAgICAgICAgICAgICAgICAgICAxIDAuMDAwNDk5IDAuMDAwNDk5NCAgIDU1LjA1IDEuNTZlLTEzICoqKlxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYDpgcGN0LWFmLWFtYCAgICAxIDAuMDAwMTc5IDAuMDAwMTc5MSAgIDE5Ljc0IDkuMjJlLTA2ICoqKlxuUmVzaWR1YWxzICAgICAgICAgICAgICAgICAgICAgICAgICAyNzAzIDAuMDI0NTIwIDAuMDAwMDA5MSAgICAgICAgICAgICAgICAgICAgIFxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG40MzIgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzXG4ifQ== -->
+<pre><code>                                     Df   Sum Sq   Mean Sq F value   Pr(&gt;F)    
+`eviction-filing-rate`                1 0.000558 0.0005580   61.51 6.28e-15 ***
+`pct-af-am`                           1 0.000794 0.0007945   87.58  &lt; 2e-16 ***
+`pct-hispanic`                        1 0.000342 0.0003420   37.70 9.46e-10 ***
+`pct-asian`                           1 0.000499 0.0004994   55.05 1.56e-13 ***
+`eviction-filing-rate`:`pct-af-am`    1 0.000179 0.0001791   19.74 9.22e-06 ***
+Residuals                          2703 0.024520 0.0000091                     
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+432 observations deleted due to missingness</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Interaction is significant. Adding it to model:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3VtbWFyeShsbTEyKVxuXG5gYGAifQ== -->
+<pre class="r"><code>summary(lm12)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCAqIFxuICAgIGBwY3QtYWYtYW1gICsgYHBjdC1oaXNwYW5pY2AgKyBgcGN0LWFzaWFuYCwgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMilcblxuUmVzaWR1YWxzOlxuICAgICAgTWluICAgICAgICAxUSAgICBNZWRpYW4gICAgICAgIDNRICAgICAgIE1heCBcbi0wLjAwNzAyMiAtMC4wMDA5MDcgLTAuMDAwNDg0ICAwLjAwMDAxNSAgMC4wNjA0NTQgXG5cbkNvZWZmaWNpZW50czpcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBFc3RpbWF0ZSBTdGQuIEVycm9yIHQgdmFsdWUgUHIoPnx0fCkgICAgXG4oSW50ZXJjZXB0KSAgICAgICAgICAgICAgICAgICAgICAgICAzLjYwM2UtMDQgIDkuMjk4ZS0wNSAgIDMuODc1IDAuMDAwMTA5ICoqKlxuYGV2aWN0aW9uLWZpbGluZy1yYXRlYCAgICAgICAgICAgICAgMS4wNzNlLTA0ICAyLjE3OWUtMDUgICA0LjkyNSA4LjkzZS0wNyAqKipcbmBwY3QtYWYtYW1gICAgICAgICAgICAgICAgICAgICAgICAgIDUuMjE0ZS0wNSAgNC43ODZlLTA2ICAxMC44OTUgIDwgMmUtMTYgKioqXG5gcGN0LWhpc3BhbmljYCAgICAgICAgICAgICAgICAgICAgICAyLjM5OWUtMDUgIDQuNjI2ZS0wNiAgIDUuMTg1IDIuMzJlLTA3ICoqKlxuYHBjdC1hc2lhbmAgICAgICAgICAgICAgICAgICAgICAgICAgMS42NzVlLTA0ICAyLjM3MmUtMDUgICA3LjA2MSAyLjA5ZS0xMiAqKipcbmBldmljdGlvbi1maWxpbmctcmF0ZWA6YHBjdC1hZi1hbWAgLTIuMzIzZS0wNiAgNS4yMjhlLTA3ICAtNC40NDMgOS4yMmUtMDYgKioqXG4tLS1cblNpZ25pZi4gY29kZXM6ICAwIOKAmCoqKuKAmSAwLjAwMSDigJgqKuKAmSAwLjAxIOKAmCrigJkgMC4wNSDigJgu4oCZIDAuMSDigJgg4oCZIDFcblxuUmVzaWR1YWwgc3RhbmRhcmQgZXJyb3I6IDAuMDAzMDEyIG9uIDI3MDMgZGVncmVlcyBvZiBmcmVlZG9tXG4gICg0MzIgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzKVxuTXVsdGlwbGUgUi1zcXVhcmVkOiAgMC4wODgyNCxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuMDg2NTUgXG5GLXN0YXRpc3RpYzogNTIuMzIgb24gNSBhbmQgMjcwMyBERiwgIHAtdmFsdWU6IDwgMi4yZS0xNlxuIn0= -->
+<pre><code>
+Call:
+lm(formula = county_covid_cases_rate ~ `eviction-filing-rate` * 
+    `pct-af-am` + `pct-hispanic` + `pct-asian`, data = covid.eviction2)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.007022 -0.000907 -0.000484  0.000015  0.060454 
+
+Coefficients:
+                                     Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                         3.603e-04  9.298e-05   3.875 0.000109 ***
+`eviction-filing-rate`              1.073e-04  2.179e-05   4.925 8.93e-07 ***
+`pct-af-am`                         5.214e-05  4.786e-06  10.895  &lt; 2e-16 ***
+`pct-hispanic`                      2.399e-05  4.626e-06   5.185 2.32e-07 ***
+`pct-asian`                         1.675e-04  2.372e-05   7.061 2.09e-12 ***
+`eviction-filing-rate`:`pct-af-am` -2.323e-06  5.228e-07  -4.443 9.22e-06 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.003012 on 2703 degrees of freedom
+  (432 observations deleted due to missingness)
+Multiple R-squared:  0.08824,   Adjusted R-squared:  0.08655 
+F-statistic: 52.32 on 5 and 2703 DF,  p-value: &lt; 2.2e-16</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>adj r-sq Increases significantly, all variables highly significant. Shows that as pct-af-am increases, eviction filing rate matters less. Magnitude of coefficients: 1) pct-asian 2) eviction-filing-rate 3) pct-af-am 4) pct-hispanic 5) <code>eviction-filing-rate</code>:<code>pct-af-am</code></p>
+</div>
+<div id="knn" class="section level1">
+<h1>KNN</h1>
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkNoaWNhIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQotLS0NCg0KIyMgMDUvMDUvMjAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KIyMgMDUvMDgvMjAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpCeSBGcmlkYXk6IGRhdGEgaW4gb3JkZXIsIGNob29zZSB3aGF0IGFsZ29yaXRobXMgdG8gd29yayBvbg0KTmV4dCB3ZWVrOiBXb3JrIG9uIG91ciBhbGdvcml0aG1zDQoNCk9wdGlvbnM6DQoNCiogbG0gWyBsbShjb3ZpZCBjYXNlcyB+IC4sIGRhdGEgPSBjb3ZpZC5ldmljdGlvbikgXQ0KICAgIHN1cGVydmlzZWQNCiAgICBwcmVkaWN0aXZlDQogICAgbGluZWFyDQogICAgbnVtZXJpYyBvdXRjb21lDQoNCiogay1tZWFucyBjbHVzdGVyaW5nDQogICAgdW5zdXBlcnZpc2VkDQogICAgd2UgY2FuIHZpc3VhbGl6ZSBjbHVzdGVycyBvZiBzaW1pbGFyIGRhdGEgYnkgZGlzdGFuY2UNCg0KKiBrbm4NCiAgICBzdXBlcnZpc2VkDQogICAgcHJlZGljdGl2ZQ0KICAgIGNhbiBwcmVkaWN0IGJhc2VkIG9uIG5lYXJlc3QgZGF0YSBwb2ludHMgKGNhdGVnb3JpYWwgcHJlZGljdG9yKQ0KICAgIA0KKiBkZWNpc2lvbiB0cmVlcw0KICAgIHN1cGVydmlzZWQgJiB1bnN1cGVydmlzZWQNCiAgICBwcmVkaWN0aXZlOg0KICAgICAgcmVncmVzc2lvbiBjb250ZXh0OiBwcmVkaWN0IGNvdmlkIGNhc2VzIHVzaW5nIGZlYXR1cmVzIGxpa2UgZXZpY3Rpb24NCiAgICAgIGNhbiB1c2UgbG0gb3Igb3RoZXIgbW9kZWxzIGFzIHByZWRpY3RvcnMNCiAgICBjbGFzc2lmaWNhdGlvbjoNCiAgICAgIGNhbiBqdXN0IGJlIHVzZWQgdG8gdmlzdWFsaXplIGJ5IHNpbWlsYXIgZmVhdHVyZXMNCiAgICANCiogcmFuZG9tIGZvcmVzdA0KICAgIHN1cGVydmlzZWQgJiB1bnN1cGVydmlzZWQNCiAgICBiZXR0ZXIgdHJlZSBtb2RlbHMNCiAgICBwcmVkaWN0aXZlDQogICAgY2xhc3NpZmljYXRpb24NCiAgICANCiogbGRhDQogICAgdW5zdXBlcnZpc2VkDQogICAgdXNlZCBmb3IgY2x1c3RlcmluZzogbWF4ZXMgZGlzdGFuY2UgYmV0d2VlbiBjYXRlZ29yaWVzLCBtaW5zIGRpc3RhbmNlIHdpdGhpbg0KICAgIG1vc3RseSBqdXN0IGZvciBncm91cGluZyBzaW1pbGFyIHRoaW5ncw0KDQoqIHBjYQ0KICAgIHVuc3VwZXJ2aXNlZA0KICAgIHRyYW5zZm9ybXMgZGF0YSB0byBuZXcgY29vcmRpbmF0ZSBzeXN0ZW0gd2hpY2ggbWF4ZXMgdmFyaWFuY2UgYmV0d2VlbiBjbGFzc2VzDQogICAgYWxzbyBtb3N0bHkgdXNlZCBqdXN0IHRvIG1ha2UgZGF0YSBlYXN5IHRvIHZpc3VhbGl6ZSBieSBzaW1pbGFyaXR5L2RpZmZlcmVuY2UNCiAgICBraW5kIG9mIGRpZmZpY3VsdCB3aXRoIG91ciBkYXRhLCBidXQgd2UgY291bGQgbG9vayBhdCBqdXN0IGV2aWN0aW9uIHNpbWlsYXJpdGllcy9kaWZmZXJlbmNlcyBhbmQgaG93IHRoYXQgdHJhbnNsYXRlcyB0byBjb3ZpZA0KDQoqIHNwbGluZXMNCiAgICBmaXRzIGEgYnVuY2ggb2YgZGF0YSB3aXRoIGEgc3F1aWdnbHkgbGluZQ0KICAgIHJlcXVpcmVzIGEgbW9yZSBvciBsZXNzIGNsZWFyIHBhdHRlcm4sIHJpZ2h0PyBhbmQgY29udGludW91cyBkYXRhIG9uIGJvdGggYXhlcz8NCg0KKiBoaWVyYXJjaGljYWwgY2x1c3RlcmluZw0KICAgIA0KDQoqIGtlcm5lbCBzbW9vdGhpbmcNCiAgICBzdXBlcnZpc2VkDQogICAgcHJlZGljdGl2ZQ0KICAgIGVzdGltYXRlcyBmdW5jdGlvbiBhcyB3ZWlnaHRlZCBhdmcgb2YgbmVpZ2hib3JpbmcgZGF0YSAoY2xvc2VyIHBvaW50cyB3ZWlnaHRlZCBtb3JlKQ0KDQoNCg0KIyMgVW5zdXBlcnZpc2VkOg0KDQoNCiMjIFN1cGVydmlzZWQ6DQoNCg0KIyMgMDUvMDcvMjAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpMaWJyYXJpZXM6DQpgYGB7ciBsaWJyYXJpZXMsIGluY2x1ZGU9RkFMU0V9DQpsaWJyYXJ5KHJlYWR4bCkNCmxpYnJhcnkodGlkeXZlcnNlKQ0KYGBgDQoNCkxvYWQgaW4gZGF0YToNCihjb3ZpZCBkYXRhIGZvciA0LzMwLzIwKQ0KYGBge3IgZGF0YSwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NCmNvdmlkLmRhdGEgPC0gcmVhZC5jc3YoImNvdmlkX2NvbmZpcm1lZF91c2FmYWN0c18yLmNzdiIpDQpjb3ZpZC5jYXNlcyA8LSBjb3ZpZC5kYXRhWywgYygxOjQsIDEwNCldDQpjb2xuYW1lcyhjb3ZpZC5jYXNlcylbYygxLCAyLCA1KV0gPC0gYygiY291bnR5RklQUyIsICJDb3VudHkiLCAiY292aWRDYXNlcyIpDQpgYGANCg0KanVzdCBpbiBjYXNlIGl0J3MgdXNlZnVsIEknbSBnb25uYSBicmluZyBpbiBkZWF0aCBudW1iZXJzLg0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpjb3ZpZC5kZWF0aHMuZGF0YSA8LSByZWFkX2NzdignY292aWRfZGVhdGhzX3VzYWZhY3RzLmNzdicpDQpjb3ZpZC5kZWF0aHMgPC0gY292aWQuZGVhdGhzLmRhdGFbLCBjKDE6NCwgMTA0KV0NCmNvbG5hbWVzKGNvdmlkLmRlYXRocylbYygxLCAyLCA1KV0gPC0gYygiY291bnR5RklQUyIsICJDb3VudHkiLCAiY292aWREZWF0aHMiKQ0KYGBgDQoNClBvcCBkYXRhIHdlIGNhbiB1c2UgdG8gY29udHJvbC9hZGp1c3QgY292aWQgY2FzZSBhbmQgZXZpY3Rpb24gZmlsaW5nIHJhdGUgZGF0YS4NCmBgYHtyLCBldmFsPUZBTFNFLCBpbmNsdWRlPUZBTFNFfQ0KY292aWQucG9wLmRhdGEgPC0gcmVhZF9jc3YoJ2NvdmlkX2NvdW50eV9wb3B1bGF0aW9uX3VzYWZhY3RzLmNzdicpDQpjb3ZpZC5wb3AgPC0gY292aWQucG9wLmRhdGENCmBgYA0KDQpjb21iaW5lIGFsbCBvZiB0aGUgY292aWQgZGF0YQ0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpjb3ZpZCA8LSBmdWxsX2pvaW4oY292aWQuY2FzZXMsIGNvdmlkLmRlYXRoc1ssIGMoMSwgNSldLA0KICAgICAgICAgICAgICAgICAgIGJ5ID0gImNvdW50eUZJUFMiKQ0KDQpjb3ZpZCA8LSBmdWxsX2pvaW4oY292aWQsIGNvdmlkLnBvcFssIGMoMSwgNCldLA0KICAgICAgICAgICAgICAgICAgIGJ5ID0gImNvdW50eUZJUFMiKQ0KDQpgYGANCg0KZmlsdGVyaW5nIG91dCBub24tY291bnR5IHJvd3MgKCJTdGF0ZXdpZGUgVW5hbGxvY2F0ZWQiKQ0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpjb3ZpZCA8LSBjb3ZpZCAlPiUNCiAgZmlsdGVyKGNvdW50eUZJUFMgIT0gMCkNCmNvdmlkIDwtIGNvdmlkICU+JQ0KICBmaWx0ZXIoY291bnR5RklQUyAhPSAxKQ0KYGBgDQoNCnRoaXMgaXMgYXQgYSBidW5jaCBvZiBsZXZlbHMgYnV0IG5vdCBjb3VudHkgSSB0aGluayBzbyBJJ20gZ29pbmcgdG8gZ2V0IHNvbWV0aGluZyBhdCB0aGUgY291bnR5IGxldmVsLiB0aGF0IHdheSBpdCBjYW4gbWF0Y2ggb3VyIGNvdW50eS1sZXZlbCBjb3ZpZCBkYXRhLg0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQojIGV2aWN0aW9uLmRhdGEgPC0gcmVhZC5jc3YoImV2aWN0aW9uLmNzdiIpDQojIGV2aWN0aW9uIDwtIGV2aWN0aW9uLmRhdGENCmBgYA0KDQp0aGlzIGlzIGp1c3QgdGhlIHN0YXRlLXJlcG9ydGVkIGZpbGluZyByYXRlIGZvciBzZXZlcmFsIHllYXJzLiBJJ2xsIG5hcnJvdyBpdCBkb3duIHRvIHRoZSBtb3N0IHJlY2VudCB5ZWFyLg0KYGBge3IsIGluY2x1ZGU9RkFMU0V9DQojIGV2aWN0aW9uLmNvdW50eS5kYXRhIDwtIHJlYWRfeGxzeCgnRXh0U3RhdHNGdWxsLnhsc3gnLCBzaGVldCA9IDQpDQojIGV2aWN0aW9uIDwtIGV2aWN0aW9uLmNvdW50eS5kYXRhDQpgYGANCg0KTGV0J3Mgc2VlIHdoYXQgdGhlIG1vc3QgcmVjZW50IHllYXIgbG9va3MgbGlrZToNCmBgYHtyLCBldmFsPUZBTFNFLCBpbmNsdWRlPUZBTFNFfQ0KZXZpY3Rpb24uMjAxNiA8LSBldmljdGlvbiAlPiUNCiAgZmlsdGVyKHllYXIgPT0gMjAxNikNCmBgYA0KDQpUcnlpbmcgdG8gZmlndXJlIG91dCB3aHkgdGhlcmUgYXJlIG1vcmUgcm93cyBpbiBjb3ZpZCB0aGFuIGluIGV2aWN0aW9uIGRhdGEuIEkgZ3Vlc3Mgd2UgY2FuIGp1c3QgZ28gd2l0aCBjb3VudGllcyB3aGVyZSB3ZSBoYXZlIGJvdGggaW5mbyBmb3IgYm90aC4gVGhpcyBsZWF2ZXMgdXMgd2l0aCAyNiBzdGF0ZXMuDQpgYGB7ciwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NCmxlbmd0aCh1bmlxdWUoY292aWQkY291bnR5RklQUykpDQpsZW5ndGgodW5pcXVlKGV2aWN0aW9uLjIwMTYkZmlwcykpDQogIA0KY292aWQuZXZpY3Rpb24gPC0gaW5uZXJfam9pbihldmljdGlvbi4yMDE2WywgYygxLCA0LCA1KV0sIGNvdmlkLA0KICAgICAgICAgIGJ5ID0gYygiZmlwcyIgPSAiY291bnR5RklQUyIpKQ0KY29sbmFtZXMoY292aWQuZXZpY3Rpb24pWzNdIDwtICJFdmljdGlvbnMiDQpgYGANCg0KQ3JlYXRlIG91ciBtZWFuIGJlbmNobWFya3MgZm9yIGV2aWN0aW9ucywgZGVhdGhzLCBhbmQgY2FzZXMsIGFsbCBvdmVyIHBvcC4gDQpVUyB0b3RhbCBwb3AgdGFrZW4gZnJvbSBodHRwczovL3d3dy5jZW5zdXMuZ292L3BvcGNsb2NrLw0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpzdGF0ZS5tZWFuLmV2aWN0aW9ucyA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgZ3JvdXBfYnkoU3RhdGUpICU+JQ0KICBzdW1tYXJpemUoc3RhdGVfbWVhbl9maWxpbmdfcmF0ZSA9IG1lYW4oYXMubnVtZXJpYyhgZXZpY3Rpb24tZmlsaW5nLXJhdGVgKSwgbmEucm0gPSBUUlVFKSkNCg0KY292aWQuZXZpY3Rpb24gPC0gZnVsbF9qb2luKGNvdmlkLmV2aWN0aW9uLCBzdGF0ZS5tZWFuLmV2aWN0aW9ucywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJTdGF0ZSIpDQoNCmNvdmlkLmV2aWN0aW9uICA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGV2aWN0aW9uc19ncmVhdGVyX3N0YXRlID0gaWZlbHNlKGBldmljdGlvbi1maWxpbmctcmF0ZWAgPiBzdGF0ZV9tZWFuX2ZpbGluZ19yYXRlLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KDQpVUy5tZWFuLmV2aWN0aW9ucyA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgc3VtbWFyaXplKFVTX21lYW5fZmlsaW5nX3JhdGUgPSBtZWFuKGFzLm51bWVyaWMoYGV2aWN0aW9uLWZpbGluZy1yYXRlYCksIG5hLnJtID0gVFJVRSkpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoVVNfbWVhbl9maWxpbmdfcmF0ZSA9IFVTLm1lYW4uZXZpY3Rpb25zJFVTX21lYW5fZmlsaW5nX3JhdGUpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoZXZpY3Rpb25zX2dyZWF0ZXJfVVMgPSBpZmVsc2UoYGV2aWN0aW9uLWZpbGluZy1yYXRlYCA+IFVTX21lYW5fZmlsaW5nX3JhdGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCkpDQpgYGANCg0KSSdtIGdvbm5hIGJhc2UgY292aWQgZGF0YSBvbiBhdmVyYWdlIG9mIGFsbCBzdGF0ZXMvY291bnRpZXMgaW5jbHVkaW5nIHRob3NlIHRoYXQgd2UgZG9uJ3QgaGF2ZSBldmljdGlvbmQgZGF0YSBmb3IuDQpgYGB7ciwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NClVzLmNvdmlkLmNhc2VzLnJhdGUgPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIHN1bW1hcml6ZShVU19jb3ZpZF9jYXNlc19yYXRlID0gc3VtKGNvdmlkQ2FzZXMpLzMyOTU4NDEzMikNCg0KY292aWQuZXZpY3Rpb24gPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIG11dGF0ZShVU19jb3ZpZF9jYXNlc19yYXRlID0gVXMuY292aWQuY2FzZXMucmF0ZSRVU19jb3ZpZF9jYXNlc19yYXRlKQ0KDQpVUy5jb3ZpZC5kZWF0aC5yYXRlIDwtIGNvdmlkICU+JQ0KICBzdW1tYXJpemUoVVNfY292aWRfZGVhdGhfcmF0ZSA9IHN1bShjb3ZpZERlYXRocykvc3VtKGNvdmlkQ2FzZXMpKQ0KDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKFVTX2NvdmlkX2RlYXRoX3JhdGUgPSBVUy5jb3ZpZC5kZWF0aC5yYXRlJFVTX2NvdmlkX2RlYXRoX3JhdGUpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgPSBjb3ZpZENhc2VzL3BvcHVsYXRpb24pDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoY291bnR5X2NvdmlkX2RlYXRoX3JhdGUgPSBjb3ZpZERlYXRocy9jb3ZpZENhc2VzKQ0KDQpTdGF0ZS5jb3ZpZC5jYXNlcy5yYXRlIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBncm91cF9ieShTdGF0ZSkgJT4lDQogIHN1bW1hcml6ZShzdGF0ZV9jb3ZpZF9jYXNlc19yYXRlID0gbWVhbihjb3VudHlfY292aWRfY2FzZXNfcmF0ZSkpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGZ1bGxfam9pbihjb3ZpZC5ldmljdGlvbiwgU3RhdGUuY292aWQuY2FzZXMucmF0ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJTdGF0ZSIpDQoNClN0YXRlLmNvdmlkLmRlYXRoLnJhdGUgPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIGdyb3VwX2J5KFN0YXRlKSAlPiUNCiAgc3VtbWFyaXplKHN0YXRlX2NvdmlkX2RlYXRoX3JhdGUgPSBtZWFuKGNvdW50eV9jb3ZpZF9kZWF0aF9yYXRlKSkNCg0KY292aWQuZXZpY3Rpb24gPC0gZnVsbF9qb2luKGNvdmlkLmV2aWN0aW9uLCBTdGF0ZS5jb3ZpZC5kZWF0aC5yYXRlLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gIlN0YXRlIikNCiAgDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGNvdmlkQ2FzZXNfZ3JlYXRlcl9zdGF0ZSA9IGlmZWxzZShjb3VudHlfY292aWRfY2FzZXNfcmF0ZSA+IHN0YXRlX2NvdmlkX2Nhc2VzX3JhdGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwKSkNCg0KY292aWQuZXZpY3Rpb24gPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIG11dGF0ZShjb3ZpZENhc2VzX2dyZWF0ZXJfVVMgPSBpZmVsc2UoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgPg0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgVVNfY292aWRfY2FzZXNfcmF0ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGNvdmlkRGVhdGhzX2dyZWF0ZXJfVVMgPSBpZmVsc2UoY291bnR5X2NvdmlkX2RlYXRoX3JhdGUgPg0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgVVNfY292aWRfZGVhdGhfcmF0ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGNvdmlkRGVhdGhzX2dyZWF0ZXJfc3RhdGUgPSBpZmVsc2UoY291bnR5X2NvdmlkX2RlYXRoX3JhdGUgPg0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN0YXRlX2NvdmlkX2RlYXRoX3JhdGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KYGBgDQoNClJlb3JnYW5pemUgY29sdW1uczoNCmBgYHtyLCBldmFsPUZBTFNFLCBpbmNsdWRlPUZBTFNFfQ0KY292aWQuZXZpY3Rpb24gPC0gY292aWQuZXZpY3Rpb25bLCBjKDE6MiwgNCwgOSwgNiwgNSwgMywgMTA6MTEsIDE0LCAxMjoxMywgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNzo4LCAxNzoyMCwgMTU6MTYsIDIxLCAyNCwgMjI6MjMpXQ0KYGBgDQoNCndyaXRlIG5ldyBjc3Y6DQpgYGB7ciwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NCiMgd3JpdGVfY3N2KGNvdmlkLmV2aWN0aW9uLCAiY292aWRfZXZpY3Rpb24uY3N2IikNCmBgYA0KDQojIyAwNS8wOC8yMDIwIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCkFkZCBpbiBvdGhlciBldmljdGlvbmxhYiB2YXJpYWJsZXM6DQpgYGB7cn0NCmNvdmlkLmV2aWN0aW9uIDwtIHJlYWRfY3N2KCdjb3ZpZF9ldmljdGlvbi5jc3YnKQ0KDQpVUy5ldmljdGlvbnMgPC0gcmVhZF9jc3YoJ2NvdW50aWVzX3VzLmNzdicpDQoNCmV2aWN0aW9uIDwtIFVTLmV2aWN0aW9ucw0KDQpldmljdGlvbi4yMDE2IDwtIGV2aWN0aW9uICU+JQ0KICBmaWx0ZXIoeWVhciA9PSAyMDE2KQ0KDQpsZW5ndGgodW5pcXVlKGNvdmlkJGNvdW50eUZJUFMpKQ0KbGVuZ3RoKHVuaXF1ZShldmljdGlvbi4yMDE2JEdFT0lEKSkNCg0Kc3RyKGV2aWN0aW9uLjIwMTYkR0VPSUQpDQpzdHIoY292aWQkY291bnR5RklQUykNCg0KZXZpY3Rpb24uMjAxNiRHRU9JRCA8LSBhcy5udW1lcmljKGV2aWN0aW9uLjIwMTYkR0VPSUQpDQogIA0KY292aWQuZXZpY3Rpb24gPC0gaW5uZXJfam9pbihldmljdGlvbi4yMDE2WywgLWMoMzo1KV0sIGNvdmlkLA0KICAgICAgICAgIGJ5ID0gYygiR0VPSUQiID0gImNvdW50eUZJUFMiKSkNCg0KIyB3cml0ZV9jc3YoY292aWQuZXZpY3Rpb24sICJjb3ZpZF9ldmljdGlvbjIuY3N2IikNCg0KYGBgDQoNCg0KDQo=</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkNoaWNhIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQotLS0NCg0KIyMgMDUvMDUvMjAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KIyMgMDUvMDgvMjAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpCeSBGcmlkYXk6IGRhdGEgaW4gb3JkZXIsIGNob29zZSB3aGF0IGFsZ29yaXRobXMgdG8gd29yayBvbg0KTmV4dCB3ZWVrOiBXb3JrIG9uIG91ciBhbGdvcml0aG1zDQoNCk9wdGlvbnM6DQoNCiogbG0gWyBsbShjb3ZpZCBjYXNlcyB+IC4sIGRhdGEgPSBjb3ZpZC5ldmljdGlvbikgXQ0KICAgIHN1cGVydmlzZWQNCiAgICBwcmVkaWN0aXZlDQogICAgbGluZWFyDQogICAgbnVtZXJpYyBvdXRjb21lDQoNCiogay1tZWFucyBjbHVzdGVyaW5nDQogICAgdW5zdXBlcnZpc2VkDQogICAgd2UgY2FuIHZpc3VhbGl6ZSBjbHVzdGVycyBvZiBzaW1pbGFyIGRhdGEgYnkgZGlzdGFuY2UNCg0KKiBrbm4NCiAgICBzdXBlcnZpc2VkDQogICAgcHJlZGljdGl2ZQ0KICAgIGNhbiBwcmVkaWN0IGJhc2VkIG9uIG5lYXJlc3QgZGF0YSBwb2ludHMgKGNhdGVnb3JpYWwgcHJlZGljdG9yKQ0KICAgIA0KKiBkZWNpc2lvbiB0cmVlcw0KICAgIHN1cGVydmlzZWQgJiB1bnN1cGVydmlzZWQNCiAgICBwcmVkaWN0aXZlOg0KICAgICAgcmVncmVzc2lvbiBjb250ZXh0OiBwcmVkaWN0IGNvdmlkIGNhc2VzIHVzaW5nIGZlYXR1cmVzIGxpa2UgZXZpY3Rpb24NCiAgICAgIGNhbiB1c2UgbG0gb3Igb3RoZXIgbW9kZWxzIGFzIHByZWRpY3RvcnMNCiAgICBjbGFzc2lmaWNhdGlvbjoNCiAgICAgIGNhbiBqdXN0IGJlIHVzZWQgdG8gdmlzdWFsaXplIGJ5IHNpbWlsYXIgZmVhdHVyZXMNCiAgICANCiogcmFuZG9tIGZvcmVzdA0KICAgIHN1cGVydmlzZWQgJiB1bnN1cGVydmlzZWQNCiAgICBiZXR0ZXIgdHJlZSBtb2RlbHMNCiAgICBwcmVkaWN0aXZlDQogICAgY2xhc3NpZmljYXRpb24NCiAgICANCiogbGRhDQogICAgdW5zdXBlcnZpc2VkDQogICAgdXNlZCBmb3IgY2x1c3RlcmluZzogbWF4ZXMgZGlzdGFuY2UgYmV0d2VlbiBjYXRlZ29yaWVzLCBtaW5zIGRpc3RhbmNlIHdpdGhpbg0KICAgIG1vc3RseSBqdXN0IGZvciBncm91cGluZyBzaW1pbGFyIHRoaW5ncw0KDQoqIHBjYQ0KICAgIHVuc3VwZXJ2aXNlZA0KICAgIHRyYW5zZm9ybXMgZGF0YSB0byBuZXcgY29vcmRpbmF0ZSBzeXN0ZW0gd2hpY2ggbWF4ZXMgdmFyaWFuY2UgYmV0d2VlbiBjbGFzc2VzDQogICAgYWxzbyBtb3N0bHkgdXNlZCBqdXN0IHRvIG1ha2UgZGF0YSBlYXN5IHRvIHZpc3VhbGl6ZSBieSBzaW1pbGFyaXR5L2RpZmZlcmVuY2UNCiAgICBraW5kIG9mIGRpZmZpY3VsdCB3aXRoIG91ciBkYXRhLCBidXQgd2UgY291bGQgbG9vayBhdCBqdXN0IGV2aWN0aW9uIHNpbWlsYXJpdGllcy9kaWZmZXJlbmNlcyBhbmQgaG93IHRoYXQgdHJhbnNsYXRlcyB0byBjb3ZpZA0KDQoqIHNwbGluZXMNCiAgICBmaXRzIGEgYnVuY2ggb2YgZGF0YSB3aXRoIGEgc3F1aWdnbHkgbGluZQ0KICAgIHJlcXVpcmVzIGEgbW9yZSBvciBsZXNzIGNsZWFyIHBhdHRlcm4sIHJpZ2h0PyBhbmQgY29udGludW91cyBkYXRhIG9uIGJvdGggYXhlcz8NCg0KKiBoaWVyYXJjaGljYWwgY2x1c3RlcmluZw0KICAgIA0KDQoqIGtlcm5lbCBzbW9vdGhpbmcNCiAgICBzdXBlcnZpc2VkDQogICAgcHJlZGljdGl2ZQ0KICAgIGVzdGltYXRlcyBmdW5jdGlvbiBhcyB3ZWlnaHRlZCBhdmcgb2YgbmVpZ2hib3JpbmcgZGF0YSAoY2xvc2VyIHBvaW50cyB3ZWlnaHRlZCBtb3JlKQ0KDQoNCg0KIyMgVW5zdXBlcnZpc2VkOg0KDQoNCiMjIFN1cGVydmlzZWQ6DQoNCg0KIyMgMDUvMDcvMjAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQ0KDQpMaWJyYXJpZXM6DQpgYGB7ciBsaWJyYXJpZXMsIGluY2x1ZGU9RkFMU0V9DQpsaWJyYXJ5KHJlYWR4bCkNCmxpYnJhcnkodGlkeXZlcnNlKQ0KYGBgDQoNCkxvYWQgaW4gZGF0YToNCihjb3ZpZCBkYXRhIGZvciA0LzMwLzIwKQ0KYGBge3IgZGF0YSwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NCmNvdmlkLmRhdGEgPC0gcmVhZC5jc3YoImNvdmlkX2NvbmZpcm1lZF91c2FmYWN0c18yLmNzdiIpDQpjb3ZpZC5jYXNlcyA8LSBjb3ZpZC5kYXRhWywgYygxOjQsIDEwNCldDQpjb2xuYW1lcyhjb3ZpZC5jYXNlcylbYygxLCAyLCA1KV0gPC0gYygiY291bnR5RklQUyIsICJDb3VudHkiLCAiY292aWRDYXNlcyIpDQpgYGANCg0KanVzdCBpbiBjYXNlIGl0J3MgdXNlZnVsIEknbSBnb25uYSBicmluZyBpbiBkZWF0aCBudW1iZXJzLg0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpjb3ZpZC5kZWF0aHMuZGF0YSA8LSByZWFkX2NzdignY292aWRfZGVhdGhzX3VzYWZhY3RzLmNzdicpDQpjb3ZpZC5kZWF0aHMgPC0gY292aWQuZGVhdGhzLmRhdGFbLCBjKDE6NCwgMTA0KV0NCmNvbG5hbWVzKGNvdmlkLmRlYXRocylbYygxLCAyLCA1KV0gPC0gYygiY291bnR5RklQUyIsICJDb3VudHkiLCAiY292aWREZWF0aHMiKQ0KYGBgDQoNClBvcCBkYXRhIHdlIGNhbiB1c2UgdG8gY29udHJvbC9hZGp1c3QgY292aWQgY2FzZSBhbmQgZXZpY3Rpb24gZmlsaW5nIHJhdGUgZGF0YS4NCmBgYHtyLCBldmFsPUZBTFNFLCBpbmNsdWRlPUZBTFNFfQ0KY292aWQucG9wLmRhdGEgPC0gcmVhZF9jc3YoJ2NvdmlkX2NvdW50eV9wb3B1bGF0aW9uX3VzYWZhY3RzLmNzdicpDQpjb3ZpZC5wb3AgPC0gY292aWQucG9wLmRhdGENCmBgYA0KDQpjb21iaW5lIGFsbCBvZiB0aGUgY292aWQgZGF0YQ0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpjb3ZpZCA8LSBmdWxsX2pvaW4oY292aWQuY2FzZXMsIGNvdmlkLmRlYXRoc1ssIGMoMSwgNSldLA0KICAgICAgICAgICAgICAgICAgIGJ5ID0gImNvdW50eUZJUFMiKQ0KDQpjb3ZpZCA8LSBmdWxsX2pvaW4oY292aWQsIGNvdmlkLnBvcFssIGMoMSwgNCldLA0KICAgICAgICAgICAgICAgICAgIGJ5ID0gImNvdW50eUZJUFMiKQ0KDQpgYGANCg0KZmlsdGVyaW5nIG91dCBub24tY291bnR5IHJvd3MgKCJTdGF0ZXdpZGUgVW5hbGxvY2F0ZWQiKQ0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpjb3ZpZCA8LSBjb3ZpZCAlPiUNCiAgZmlsdGVyKGNvdW50eUZJUFMgIT0gMCkNCmNvdmlkIDwtIGNvdmlkICU+JQ0KICBmaWx0ZXIoY291bnR5RklQUyAhPSAxKQ0KYGBgDQoNCnRoaXMgaXMgYXQgYSBidW5jaCBvZiBsZXZlbHMgYnV0IG5vdCBjb3VudHkgSSB0aGluayBzbyBJJ20gZ29pbmcgdG8gZ2V0IHNvbWV0aGluZyBhdCB0aGUgY291bnR5IGxldmVsLiB0aGF0IHdheSBpdCBjYW4gbWF0Y2ggb3VyIGNvdW50eS1sZXZlbCBjb3ZpZCBkYXRhLg0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQojIGV2aWN0aW9uLmRhdGEgPC0gcmVhZC5jc3YoImV2aWN0aW9uLmNzdiIpDQojIGV2aWN0aW9uIDwtIGV2aWN0aW9uLmRhdGENCmBgYA0KDQp0aGlzIGlzIGp1c3QgdGhlIHN0YXRlLXJlcG9ydGVkIGZpbGluZyByYXRlIGZvciBzZXZlcmFsIHllYXJzLiBJJ2xsIG5hcnJvdyBpdCBkb3duIHRvIHRoZSBtb3N0IHJlY2VudCB5ZWFyLg0KYGBge3IsIGluY2x1ZGU9RkFMU0V9DQojIGV2aWN0aW9uLmNvdW50eS5kYXRhIDwtIHJlYWRfeGxzeCgnRXh0U3RhdHNGdWxsLnhsc3gnLCBzaGVldCA9IDQpDQojIGV2aWN0aW9uIDwtIGV2aWN0aW9uLmNvdW50eS5kYXRhDQpgYGANCg0KTGV0J3Mgc2VlIHdoYXQgdGhlIG1vc3QgcmVjZW50IHllYXIgbG9va3MgbGlrZToNCmBgYHtyLCBldmFsPUZBTFNFLCBpbmNsdWRlPUZBTFNFfQ0KZXZpY3Rpb24uMjAxNiA8LSBldmljdGlvbiAlPiUNCiAgZmlsdGVyKHllYXIgPT0gMjAxNikNCmBgYA0KDQpUcnlpbmcgdG8gZmlndXJlIG91dCB3aHkgdGhlcmUgYXJlIG1vcmUgcm93cyBpbiBjb3ZpZCB0aGFuIGluIGV2aWN0aW9uIGRhdGEuIEkgZ3Vlc3Mgd2UgY2FuIGp1c3QgZ28gd2l0aCBjb3VudGllcyB3aGVyZSB3ZSBoYXZlIGJvdGggaW5mbyBmb3IgYm90aC4gVGhpcyBsZWF2ZXMgdXMgd2l0aCAyNiBzdGF0ZXMuDQpgYGB7ciwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NCmxlbmd0aCh1bmlxdWUoY292aWQkY291bnR5RklQUykpDQpsZW5ndGgodW5pcXVlKGV2aWN0aW9uLjIwMTYkZmlwcykpDQogIA0KY292aWQuZXZpY3Rpb24gPC0gaW5uZXJfam9pbihldmljdGlvbi4yMDE2WywgYygxLCA0LCA1KV0sIGNvdmlkLA0KICAgICAgICAgIGJ5ID0gYygiZmlwcyIgPSAiY291bnR5RklQUyIpKQ0KY29sbmFtZXMoY292aWQuZXZpY3Rpb24pWzNdIDwtICJFdmljdGlvbnMiDQpgYGANCg0KQ3JlYXRlIG91ciBtZWFuIGJlbmNobWFya3MgZm9yIGV2aWN0aW9ucywgZGVhdGhzLCBhbmQgY2FzZXMsIGFsbCBvdmVyIHBvcC4gDQpVUyB0b3RhbCBwb3AgdGFrZW4gZnJvbSBodHRwczovL3d3dy5jZW5zdXMuZ292L3BvcGNsb2NrLw0KYGBge3IsIGV2YWw9RkFMU0UsIGluY2x1ZGU9RkFMU0V9DQpzdGF0ZS5tZWFuLmV2aWN0aW9ucyA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgZ3JvdXBfYnkoU3RhdGUpICU+JQ0KICBzdW1tYXJpemUoc3RhdGVfbWVhbl9maWxpbmdfcmF0ZSA9IG1lYW4oYXMubnVtZXJpYyhgZXZpY3Rpb24tZmlsaW5nLXJhdGVgKSwgbmEucm0gPSBUUlVFKSkNCg0KY292aWQuZXZpY3Rpb24gPC0gZnVsbF9qb2luKGNvdmlkLmV2aWN0aW9uLCBzdGF0ZS5tZWFuLmV2aWN0aW9ucywNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJTdGF0ZSIpDQoNCmNvdmlkLmV2aWN0aW9uICA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGV2aWN0aW9uc19ncmVhdGVyX3N0YXRlID0gaWZlbHNlKGBldmljdGlvbi1maWxpbmctcmF0ZWAgPiBzdGF0ZV9tZWFuX2ZpbGluZ19yYXRlLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KDQpVUy5tZWFuLmV2aWN0aW9ucyA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgc3VtbWFyaXplKFVTX21lYW5fZmlsaW5nX3JhdGUgPSBtZWFuKGFzLm51bWVyaWMoYGV2aWN0aW9uLWZpbGluZy1yYXRlYCksIG5hLnJtID0gVFJVRSkpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoVVNfbWVhbl9maWxpbmdfcmF0ZSA9IFVTLm1lYW4uZXZpY3Rpb25zJFVTX21lYW5fZmlsaW5nX3JhdGUpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoZXZpY3Rpb25zX2dyZWF0ZXJfVVMgPSBpZmVsc2UoYGV2aWN0aW9uLWZpbGluZy1yYXRlYCA+IFVTX21lYW5fZmlsaW5nX3JhdGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMCkpDQpgYGANCg0KSSdtIGdvbm5hIGJhc2UgY292aWQgZGF0YSBvbiBhdmVyYWdlIG9mIGFsbCBzdGF0ZXMvY291bnRpZXMgaW5jbHVkaW5nIHRob3NlIHRoYXQgd2UgZG9uJ3QgaGF2ZSBldmljdGlvbmQgZGF0YSBmb3IuDQpgYGB7ciwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NClVzLmNvdmlkLmNhc2VzLnJhdGUgPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIHN1bW1hcml6ZShVU19jb3ZpZF9jYXNlc19yYXRlID0gc3VtKGNvdmlkQ2FzZXMpLzMyOTU4NDEzMikNCg0KY292aWQuZXZpY3Rpb24gPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIG11dGF0ZShVU19jb3ZpZF9jYXNlc19yYXRlID0gVXMuY292aWQuY2FzZXMucmF0ZSRVU19jb3ZpZF9jYXNlc19yYXRlKQ0KDQpVUy5jb3ZpZC5kZWF0aC5yYXRlIDwtIGNvdmlkICU+JQ0KICBzdW1tYXJpemUoVVNfY292aWRfZGVhdGhfcmF0ZSA9IHN1bShjb3ZpZERlYXRocykvc3VtKGNvdmlkQ2FzZXMpKQ0KDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKFVTX2NvdmlkX2RlYXRoX3JhdGUgPSBVUy5jb3ZpZC5kZWF0aC5yYXRlJFVTX2NvdmlkX2RlYXRoX3JhdGUpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgPSBjb3ZpZENhc2VzL3BvcHVsYXRpb24pDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBtdXRhdGUoY291bnR5X2NvdmlkX2RlYXRoX3JhdGUgPSBjb3ZpZERlYXRocy9jb3ZpZENhc2VzKQ0KDQpTdGF0ZS5jb3ZpZC5jYXNlcy5yYXRlIDwtIGNvdmlkLmV2aWN0aW9uICU+JQ0KICBncm91cF9ieShTdGF0ZSkgJT4lDQogIHN1bW1hcml6ZShzdGF0ZV9jb3ZpZF9jYXNlc19yYXRlID0gbWVhbihjb3VudHlfY292aWRfY2FzZXNfcmF0ZSkpDQoNCmNvdmlkLmV2aWN0aW9uIDwtIGZ1bGxfam9pbihjb3ZpZC5ldmljdGlvbiwgU3RhdGUuY292aWQuY2FzZXMucmF0ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBieSA9ICJTdGF0ZSIpDQoNClN0YXRlLmNvdmlkLmRlYXRoLnJhdGUgPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIGdyb3VwX2J5KFN0YXRlKSAlPiUNCiAgc3VtbWFyaXplKHN0YXRlX2NvdmlkX2RlYXRoX3JhdGUgPSBtZWFuKGNvdW50eV9jb3ZpZF9kZWF0aF9yYXRlKSkNCg0KY292aWQuZXZpY3Rpb24gPC0gZnVsbF9qb2luKGNvdmlkLmV2aWN0aW9uLCBTdGF0ZS5jb3ZpZC5kZWF0aC5yYXRlLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ5ID0gIlN0YXRlIikNCiAgDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGNvdmlkQ2FzZXNfZ3JlYXRlcl9zdGF0ZSA9IGlmZWxzZShjb3VudHlfY292aWRfY2FzZXNfcmF0ZSA+IHN0YXRlX2NvdmlkX2Nhc2VzX3JhdGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwKSkNCg0KY292aWQuZXZpY3Rpb24gPC0gY292aWQuZXZpY3Rpb24gJT4lDQogIG11dGF0ZShjb3ZpZENhc2VzX2dyZWF0ZXJfVVMgPSBpZmVsc2UoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgPg0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgVVNfY292aWRfY2FzZXNfcmF0ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGNvdmlkRGVhdGhzX2dyZWF0ZXJfVVMgPSBpZmVsc2UoY291bnR5X2NvdmlkX2RlYXRoX3JhdGUgPg0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgVVNfY292aWRfZGVhdGhfcmF0ZSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KDQpjb3ZpZC5ldmljdGlvbiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKGNvdmlkRGVhdGhzX2dyZWF0ZXJfc3RhdGUgPSBpZmVsc2UoY291bnR5X2NvdmlkX2RlYXRoX3JhdGUgPg0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN0YXRlX2NvdmlkX2RlYXRoX3JhdGUsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDApKQ0KYGBgDQoNClJlb3JnYW5pemUgY29sdW1uczoNCmBgYHtyLCBldmFsPUZBTFNFLCBpbmNsdWRlPUZBTFNFfQ0KY292aWQuZXZpY3Rpb24gPC0gY292aWQuZXZpY3Rpb25bLCBjKDE6MiwgNCwgOSwgNiwgNSwgMywgMTA6MTEsIDE0LCAxMjoxMywgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNzo4LCAxNzoyMCwgMTU6MTYsIDIxLCAyNCwgMjI6MjMpXQ0KYGBgDQoNCndyaXRlIG5ldyBjc3Y6DQpgYGB7ciwgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0NCiMgd3JpdGVfY3N2KGNvdmlkLmV2aWN0aW9uLCAiY292aWRfZXZpY3Rpb24uY3N2IikNCmBgYA0KDQojIyAwNS8wOC8yMDIwIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQoNCkFkZCBpbiBvdGhlciBldmljdGlvbmxhYiB2YXJpYWJsZXM6DQpgYGB7cn0NCmNvdmlkLmV2aWN0aW9uIDwtIHJlYWRfY3N2KCdjb3ZpZF9ldmljdGlvbi5jc3YnKQ0KDQpVUy5ldmljdGlvbnMgPC0gcmVhZF9jc3YoJ2NvdW50aWVzX3VzLmNzdicpDQoNCmV2aWN0aW9uIDwtIFVTLmV2aWN0aW9ucw0KDQpldmljdGlvbi4yMDE2IDwtIGV2aWN0aW9uICU+JQ0KICBmaWx0ZXIoeWVhciA9PSAyMDE2KQ0KDQpsZW5ndGgodW5pcXVlKGNvdmlkJGNvdW50eUZJUFMpKQ0KbGVuZ3RoKHVuaXF1ZShldmljdGlvbi4yMDE2JEdFT0lEKSkNCg0Kc3RyKGV2aWN0aW9uLjIwMTYkR0VPSUQpDQpzdHIoY292aWQkY291bnR5RklQUykNCg0KZXZpY3Rpb24uMjAxNiRHRU9JRCA8LSBhcy5udW1lcmljKGV2aWN0aW9uLjIwMTYkR0VPSUQpDQogIA0KY292aWQuZXZpY3Rpb24gPC0gaW5uZXJfam9pbihldmljdGlvbi4yMDE2WywgLWMoMzo1KV0sIGNvdmlkLA0KICAgICAgICAgIGJ5ID0gYygiR0VPSUQiID0gImNvdW50eUZJUFMiKSkNCg0KIyB3cml0ZV9jc3YoY292aWQuZXZpY3Rpb24sICJjb3ZpZF9ldmljdGlvbjIuY3N2IikNCg0KYGBgDQoNCiMjIDA1LzE0LzIwMjAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0NCg0KIyBMTQ0KYGBge3J9DQpsaWJyYXJ5KHJlYWR4bCkNCmxpYnJhcnkodGlkeXZlcnNlKQ0KY292aWQuZXZpY3Rpb24gPC0gcmVhZF9jc3YoJ2NvdmlkX2V2aWN0aW9uMi5jc3YnKQ0KYGBgDQoNCnNpbXBsZSBsbToNCmNvdmlkIGNhc2UgcmF0ZSBhZ2FpbnN0IGV2aWN0aW9uIGZpbGluZyByYXRlDQpgYGB7cn0NCmxtMSA8LSBsbShjb3VudHlfY292aWRfY2FzZXNfcmF0ZSB+IGBldmljdGlvbi1maWxpbmctcmF0ZWAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uKQ0Kc3VtbWFyeShsbTEpDQpgYGANCnNpZ25pZmljYW50DQpSc3ENCldoYXQgb3RoZXIgbWVhc3VyZXMgZG8gd2UgbmVlZCB0byBjb21wYXJlIHRoaXMgdG8gb3RoZXIgbW9kZWxzPw0KDQpncmFwaCBpdCB0byBzZWUgd2hhdCB0aGUgc2xvcGUgbG9va3MgbGlrZToNCmBgYHtyfQ0KbGlicmFyeShnZ3Bsb3QyKQ0KY292aWQuZXZpY3Rpb24gJT4lDQogIGdncGxvdChhZXMoeCA9IGBldmljdGlvbi1maWxpbmctcmF0ZWAsDQogICAgICAgICAgICAgeSA9IGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlKSkgKw0KICBnZW9tX3BvaW50KCkgKw0KICBnZW9tX2FibGluZShpbnRlcmNlcHQgPSAxLjEyMWUtMDMsIA0KICAgICAgICAgICAgICBzbG9wZSA9IDkuMTg1ZS0wNSkNCmBgYA0KDQpBcmUgdGhlcmUgb3V0bGllcnMgSSBuZWVkIHRvIHJlbW92ZT8NCmBgYHtyfQ0Kb3V0bGllcnMgPC0gYm94cGxvdC5zdGF0cyhjb3ZpZC5ldmljdGlvbiRgZXZpY3Rpb24tZmlsaW5nLXJhdGVgKSRvdXQNCmBgYA0KZWggbmV2ZXJtaW5kDQoNCkFkZCBjb250cm9scyBmb3IgcG92ZXJ0eSByYXRlOg0KYGBge3J9DQpsbTIgPC0gbG0oY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBvdmVydHktcmF0ZWAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uKQ0Kc3VtbWFyeShsbTIpDQpgYGANCkFkanVzdGVkIFItc3EgaW5jcmVhc2VkDQphbGwgdmFyaWFibGVzIHNpZ25pZmljYW50DQoNClRyeSB3aXRoIGFkZGl0aW9uYWwgaW5jb21lIHZhcmlhYmxlczoNCmBgYHtyfQ0KbG0zIDwtIGxtKGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIGBwb3ZlcnR5LXJhdGVgICsgYHJlbnRlci1vY2N1cGllZC1ob3VzZWhvbGRzYCwNCiAgICAgICAgICBkYXRhID0gY292aWQuZXZpY3Rpb24pDQpzdW1tYXJ5KGxtMykNCmBgYA0KQWRqdXN0ZWQgUiBzcXVhcmVkIGp1c3QgZG91YmxlZC4gDQpJcyByZW50ZXIgb2NjdXBpZWQgaG91c2Vob2xkcyBqdXN0IGluY3JlYXNpbmcgYmMgaXRzIG5vdCBhIHJhdGU/IChncmVhdGVyIHBvcCAtPiBncmVhdGVyIHJlbnRlciBwb3ApDQoNCldpbGwgdHJ5IGNvbnRyb2w6DQpgYGB7cn0NCmNvdmlkLmV2aWN0aW9uMiA8LSBjb3ZpZC5ldmljdGlvbiAlPiUNCiAgbXV0YXRlKHJlbnRlcl9yYXRlID0gYHJlbnRlci1vY2N1cGllZC1ob3VzZWhvbGRzYC9wb3B1bGF0aW9uKQ0KDQpsbTQgPC0gbG0oY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBvdmVydHktcmF0ZWAgKyByZW50ZXJfcmF0ZSwNCiAgICAgICAgICBkYXRhID0gY292aWQuZXZpY3Rpb24yKQ0Kc3VtbWFyeShsbTQpDQpgYGANCmRlY3JlYXNlcyBBZGogci1zcSBidXQgc3RpbGwgaGlnaGVyIHRoYW4gc2ltcGxlIG9yIGp1c3QgZXZpY3Rpb24gZmlsaW5nIGFuZCBwb3ZlcnR5IHJhdGUgbG0uICB3aWxsIGdvIHdpdGggdGhpcy4NCg0KQWRkIG1vcmUgdmFyaWFibGVzOg0KYGBge3J9DQpsbTUgPC0gbG0oY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBvdmVydHktcmF0ZWAgKyByZW50ZXJfcmF0ZSArDQogICAgICAgICAgICBgcmVudC1idXJkZW5gLA0KICAgICAgICAgIGRhdGEgPSBjb3ZpZC5ldmljdGlvbjIpDQpzdW1tYXJ5KGxtNSkNCmBgYA0KUmVudCBidXJkZW4gc2VlbXMgdG8gbWFrZSBwb3ZlcnR5IHJhdGUgaW5zaWduaWZpY2FudC4gUHJvYiBiYyB0aGV5IGtpbmQgb2YgcmVwcmVzZW50IHRoZSBzYW1lIHRoaW5nLiANClRyeSB0YWtpbmcgb3V0IHBvdmVydHkgcmF0ZToNCmBgYHtyfQ0KbG02IDwtIGxtKGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIHJlbnRlcl9yYXRlICsNCiAgICAgICAgICAgIGByZW50LWJ1cmRlbmAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMikNCnN1bW1hcnkobG02KQ0KYGBgDQoNCk90aGVyIGRlbW8gdmFyaWFibGVzIHBjdC1hZi1hbToNCmBgYHtyfQ0KbG03IDwtIGxtKGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIHJlbnRlcl9yYXRlICsgYHJlbnQtYnVyZGVuYCArDQogICAgICAgICAgICBgcGN0LWFmLWFtYCwNCiAgICAgICAgICBkYXRhID0gY292aWQuZXZpY3Rpb24yKQ0Kc3VtbWFyeShsbTcpDQpgYGANCmRyYXN0aWNhbGx5IGluY3JlYXNlcyBhZGogci1zcSwgYW5kIHJlbnQtcmVsYXRlZCB2YXJpYWJsZXMgYmVjb21lIGluc2lnbmlmaWNhbnQuDQoNClJlbW92ZSB0aG9zZSByZW50IHZhcmlhYmxlczoNCg0KYGBge3J9DQpsbTggPC0gbG0oY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBjdC1hZi1hbWAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMikNCnN1bW1hcnkobG04KQ0KYGBgDQphZGogUi1zcSBkZWNyZWFzZXMgc2xpZ2h0bHkgYnV0IGkgdGhpbmsgdGhlIG1vZGVsIGlzIGJldHRlci4NCg0KQWRkIGFsbCBvdGhlciByYWNlLXJlbGF0ZWQgdmFyaWFibGVzOg0KYGBge3J9DQpsbTkgPC0gbG0oY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBjdC1hZi1hbWAgKyBgcGN0LWhpc3BhbmljYCArIGBwY3QtYW0taW5kYCArIGBwY3Qtd2hpdGVgICsgYHBjdC1hc2lhbmAgKyBgcGN0LW5oLXBpYCwNCiAgICAgICAgICBkYXRhID0gY292aWQuZXZpY3Rpb24yKQ0Kc3VtbWFyeShsbTkpDQpgYGANCkFkaiByLXNxIGdvZXMgdXAgYnV0IHNpZ25pZmljYW5jZSBjaGFuZ2VzLg0KDQpSZW1vdmUgaW5zaWduaWZpY2FudCBwY3QtbmgtcGk6DQoNCmBgYHtyfQ0KbG0xMCA8LSBsbShjb3VudHlfY292aWRfY2FzZXNfcmF0ZSB+IGBldmljdGlvbi1maWxpbmctcmF0ZWAgKyBgcGN0LWFmLWFtYCArIGBwY3QtaGlzcGFuaWNgICsgYHBjdC1hbS1pbmRgICsgYHBjdC13aGl0ZWAgKyBgcGN0LWFzaWFuYCwNCiAgICAgICAgICBkYXRhID0gY292aWQuZXZpY3Rpb24yKQ0Kc3VtbWFyeShsbTEwKQ0KYGBgDQpBbGwgcmFjZSBwZXJjZW50YWdlcyBhcmUgc2lnbmlmaWNhbnQsIGJ1dCB0aGV5J3JlIGFsc28gYWxsIHBvc2l0aXZlLCB3aGljaCBtZWFucyBiZWluZyBhbnkgcmFjZSBtYWtlcyBmb3IgZ3JlYXRlciBjb3ZpZCBjYXNlIHJhdGVzLiBTb21lIGFyZSBoaWdoZXIgdGhhbiBvdGhlcnMsIGFuZCBtb3N0bHkgZm9sbG93IHBhdHRlcm5zIGFzIHByZWRpY3RlZC4gSSdtIGdvaW5nIHRvIHRyeSBhbm92YSB0byBzZWUgd2hhdCBpdCBjb21lcyB3aXRoLg0KDQpBTk9WQToNCmBgYHtyfQ0KYW92MSA8LSBhb3YoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBjdC1hZi1hbWAgKyBgcGN0LWhpc3BhbmljYCArIGBwY3QtYW0taW5kYCArIGBwY3Qtd2hpdGVgICsgYHBjdC1hc2lhbmAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMikNCnN1bW1hcnkoYW92MSkNCmBgYA0KDQpyZW1vdmUgcGN0LWFtLWluZDoNCmBgYHtyfQ0KYW92MiA8LSBhb3YoY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgICsgYHBjdC1hZi1hbWAgKyBgcGN0LWhpc3BhbmljYCArIGBwY3Qtd2hpdGVgICsgYHBjdC1hc2lhbmAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMikNCnN1bW1hcnkoYW92MikNCmBgYA0KDQpyZW1vdmUgcGN0IHdoaXRlOg0KDQpgYGB7cn0NCmFvdjMgPC0gYW92KGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIGBwY3QtYWYtYW1gICsgYHBjdC1oaXNwYW5pY2AgKyAgYHBjdC1hc2lhbmAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMikNCnN1bW1hcnkoYW92MykNCmBgYA0KDQoNCk5ldyBsb25nIG1vZGVsOg0KYGBge3J9DQpsbTExIDwtIGxtKGNvdW50eV9jb3ZpZF9jYXNlc19yYXRlIH4gYGV2aWN0aW9uLWZpbGluZy1yYXRlYCArIGBwY3QtYWYtYW1gICsgYHBjdC1oaXNwYW5pY2AgKyAgYHBjdC1hc2lhbmAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMikNCnN1bW1hcnkobG0xMSkNCmBgYA0KU3VwZXIgaGlnaCBhZGotcnEgKGNvbXBhcmF0aXZlbHkpDQpBbGwgdmFyaWFibGVzIHNpZ25pZmljYW50LCBidXQgZXZpY3Rpb24gYmVjb21lcyBsZXNzIHNpZ25pZmljYW50DQpzaG93cyB0aGF0IHJhY2Ugc2VlbXMgdG8gbWF0dGVyIG1vcmUgdGhhbiBhbnl0aGluZy4NCg0KVHJ5IGludGVyYWN0aW9uPw0KYGBge3J9DQphb3Y0IDwtIGFvdihjb3VudHlfY292aWRfY2FzZXNfcmF0ZSB+IGBldmljdGlvbi1maWxpbmctcmF0ZWAqYHBjdC1hZi1hbWAgKyBgcGN0LWhpc3BhbmljYCArICBgcGN0LWFzaWFuYCwNCiAgICAgICAgICBkYXRhID0gY292aWQuZXZpY3Rpb24yKQ0Kc3VtbWFyeShhb3Y0KQ0KYGBgDQoNCkludGVyYWN0aW9uIGlzIHNpZ25pZmljYW50LiBBZGRpbmcgaXQgdG8gbW9kZWw6DQpgYGB7cn0NCmxtMTIgPC0gbG0oY291bnR5X2NvdmlkX2Nhc2VzX3JhdGUgfiBgZXZpY3Rpb24tZmlsaW5nLXJhdGVgKmBwY3QtYWYtYW1gICsgYHBjdC1oaXNwYW5pY2AgKyAgYHBjdC1hc2lhbmAsDQogICAgICAgICAgZGF0YSA9IGNvdmlkLmV2aWN0aW9uMikNCnN1bW1hcnkobG0xMikNCmBgYA0KYWRqIHItc3EgSW5jcmVhc2VzIHNpZ25pZmljYW50bHksIGFsbCB2YXJpYWJsZXMgaGlnaGx5IHNpZ25pZmljYW50Lg0KU2hvd3MgdGhhdCBhcyBwY3QtYWYtYW0gaW5jcmVhc2VzLCBldmljdGlvbiBmaWxpbmcgcmF0ZSBtYXR0ZXJzIGxlc3MuDQpNYWduaXR1ZGUgb2YgY29lZmZpY2llbnRzOg0KMSkgcGN0LWFzaWFuDQoyKSBldmljdGlvbi1maWxpbmctcmF0ZQ0KMykgcGN0LWFmLWFtDQo0KSBwY3QtaGlzcGFuaWMNCjUpIGBldmljdGlvbi1maWxpbmctcmF0ZWA6YHBjdC1hZi1hbWANCg0KDQoNCiMgS05ODQo=</div>
 
 
 
