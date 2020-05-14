@@ -1,0 +1,377 @@
+---
+title: "Olivia"
+author: "Olivia Jin"
+date: "5/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rpart)
+library(rattle)
+library(ipred)
+library(fastAdaboost)
+```
+
+## Load Data
+
+```{r}
+covid.eviction <- read_csv("covid_eviction2.csv")
+```
+
+## Rename Variables
+
+```{r rename}
+covid.eviction <- covid.eviction %>% 
+  rename(
+    eviction.filing.rate = "eviction-filing-rate",
+    poverty.rate = "poverty-rate",
+    pct.renter.occupied = "pct-renter-occupied",
+    median.household.income = "median-household-income",
+    pct.white = "pct-white",
+    pct.af.am = "pct-af-am",
+    pct.hispanic = "pct-hispanic",
+    pct.am.ind = "pct-am-ind",
+    pct.asian = "pct-asian",
+    pct.nh.pi = "pct-nh-pi",
+    pct.multiple = "pct-multiple",
+    pct.other = "pct-other"
+  ) 
+
+covid.eviction <- covid.eviction %>% 
+  mutate(covidCases_greater_state = factor(covidCases_greater_state)) %>% 
+  mutate(covidCases_greater_US = factor(covidCases_greater_US)) %>% 
+  mutate(covidDeaths_greater_state = factor(covidDeaths_greater_state)) %>% 
+  mutate(covidDeaths_greater_US = factor(covidDeaths_greater_US)) 
+
+```
+
+
+## Create Training and Testing Data
+
+```{r training/testing}
+
+index <- sample(nrow(covid.eviction),
+                size = nrow(covid.eviction),
+                replace = TRUE)
+
+covid.eviction.train <- covid.eviction[index, ]
+covid.eviction.test <- covid.eviction[-index, ]
+
+```
+
+
+## Decision Trees
+
+```{r decision trees}
+
+tree.case.state <- rpart(covidCases_greater_state ~ 
+                           eviction.filing.rate + 
+                           poverty.rate + 
+                           pct.renter.occupied +
+                           median.household.income +
+                           pct.white +
+                           pct.af.am +
+                           pct.hispanic +
+                           pct.asian +
+                           population,
+                         data = covid.eviction.train)
+
+
+tree.case.US <- rpart(covidCases_greater_US ~ 
+                           eviction.filing.rate + 
+                           poverty.rate + 
+                           pct.renter.occupied +
+                           median.household.income +
+                           pct.white +
+                           pct.af.am +
+                           pct.hispanic +
+                           pct.asian +
+                           population,
+                         data = covid.eviction.train)
+
+
+tree.death.state <- rpart(covidDeaths_greater_state ~ 
+                           eviction.filing.rate + 
+                           poverty.rate + 
+                           pct.renter.occupied +
+                           median.household.income +
+                           pct.white +
+                           pct.af.am +
+                           pct.hispanic +
+                           pct.asian +
+                           population,
+                         data = covid.eviction.train)
+
+
+tree.death.US <- rpart(covidDeaths_greater_US ~ 
+                           eviction.filing.rate + 
+                           poverty.rate + 
+                           pct.renter.occupied +
+                           median.household.income +
+                           pct.white +
+                           pct.af.am +
+                           pct.hispanic +
+                           pct.asian +
+                           population,
+                         data = covid.eviction.train)
+
+fancyRpartPlot(tree.case.state)
+```
+
+
+## Bagging
+
+```{r bagging}
+bagging.case.state <- bagging(covidCases_greater_state ~ 
+                                eviction.filing.rate + 
+                                poverty.rate + 
+                                pct.renter.occupied +
+                                median.household.income +
+                                pct.white +
+                                pct.af.am +
+                                pct.hispanic +
+                                pct.asian +
+                                population,
+                              data = covid.eviction.train,
+                              coob = TRUE)
+
+
+bagging.case.US <- bagging(covidCases_greater_US ~ 
+                                eviction.filing.rate + 
+                                poverty.rate + 
+                                pct.renter.occupied +
+                                median.household.income +
+                                pct.white +
+                                pct.af.am +
+                                pct.hispanic +
+                                pct.asian +
+                                population,
+                              data = covid.eviction.train,
+                              coob = TRUE)
+
+
+bagging.death.state <- bagging(covidDeaths_greater_state ~ 
+                                eviction.filing.rate + 
+                                poverty.rate + 
+                                pct.renter.occupied +
+                                median.household.income +
+                                pct.white +
+                                pct.af.am +
+                                pct.hispanic +
+                                pct.asian +
+                                population,
+                              data = covid.eviction.train,
+                              coob = TRUE)
+
+bagging.death.US <- bagging(covidDeaths_greater_US ~ 
+                                eviction.filing.rate + 
+                                poverty.rate + 
+                                pct.renter.occupied +
+                                median.household.income +
+                                pct.white +
+                                pct.af.am +
+                                pct.hispanic +
+                                pct.asian +
+                                population,
+                              data = covid.eviction.train,
+                              coob = TRUE)
+
+
+```
+
+
+
+## Boosting
+
+```{r boosting}
+
+boosting.case.state <- adaboost(covidCases_greater_state ~ 
+                                  eviction.filing.rate + 
+                                  poverty.rate + 
+                                  pct.renter.occupied +
+                                  median.household.income +
+                                  pct.white +
+                                  pct.af.am +
+                                  pct.hispanic +
+                                  pct.asian +
+                                  population,
+                                data = data.frame(covid.eviction.train),
+                                nIter = 25)
+
+
+boosting.case.US <- adaboost(covidCases_greater_US ~ 
+                               eviction.filing.rate + 
+                               poverty.rate + 
+                               pct.renter.occupied +
+                               median.household.income +
+                               pct.white +
+                               pct.af.am +
+                               pct.hispanic +
+                               pct.asian +
+                               population,
+                             data = data.frame(covid.eviction.train),
+                             nIter = 25)
+
+
+boosting.death.state <- adaboost(covidDeaths_greater_state ~ 
+                                eviction.filing.rate + 
+                                poverty.rate + 
+                                pct.renter.occupied +
+                                median.household.income +
+                                pct.white +
+                                pct.af.am +
+                                pct.hispanic +
+                                pct.asian +
+                                population,
+                              data = data.frame(covid.eviction.train),
+                              nIter = 25)
+
+boosting.death.US <- adaboost(covidDeaths_greater_US ~ 
+                                eviction.filing.rate + 
+                                poverty.rate + 
+                                pct.renter.occupied +
+                                median.household.income +
+                                pct.white +
+                                pct.af.am +
+                                pct.hispanic +
+                                pct.asian +
+                                population,
+                              data = data.frame(covid.eviction.train),
+                              nIter = 25)
+
+```
+
+
+## Test the Models on Testing Data
+
+# First predict outcome using models
+```{r predict}
+tree.case.state.preds <- ifelse(predict(tree.case.state, covid.eviction.test)[,2] > 0.5, 1, 0)
+tree.case.US.preds <- ifelse(predict(tree.case.US, covid.eviction.test)[,2] > 0.5, 1, 0)
+tree.death.state.preds <- ifelse(predict(tree.death.state, covid.eviction.test)[,2] > 0.5, 1, 0)
+tree.death.US.preds <- ifelse(predict(tree.death.US, covid.eviction.test)[,2] > 0.5, 1, 0)
+
+bagging.case.state.preds <- predict(bagging.case.state, covid.eviction.test)
+bagging.case.US.preds <- predict(bagging.case.US, covid.eviction.test)
+bagging.death.state.preds <- predict(bagging.death.state, covid.eviction.test)
+bagging.death.US.preds <- predict(bagging.death.state, covid.eviction.test)
+
+
+boosting.case.state.preds <- predict(boosting.case.state, covid.eviction.test)$class
+boosting.case.US.preds <- predict(boosting.case.US, covid.eviction.test)$class
+boosting.death.state.preds <- predict(boosting.death.state, covid.eviction.test)$class
+boosting.death.US.preds <- predict(boosting.death.US, covid.eviction.test)$class
+
+```
+
+# Create confusion matrices for each model
+``` {r cf}
+
+cf.tree.case.state <- table(tree.case.state.preds, covid.eviction.test$covidCases_greater_state)
+cf.tree.case.US <- table(tree.case.US.preds, covid.eviction.test$covidCases_greater_US)
+cf.tree.death.state <- table(tree.death.state.preds, covid.eviction.test$covidDeaths_greater_state)
+cf.tree.death.US <- table(tree.death.US.preds, covid.eviction.test$covidDeaths_greater_US)
+
+cf.bagging.case.state <- table(bagging.case.state.preds, covid.eviction.test$covidCases_greater_state)
+cf.bagging.case.US <- table(bagging.case.US.preds, covid.eviction.test$covidCases_greater_US)
+cf.bagging.death.state <- table(bagging.death.state.preds, covid.eviction.test$covidDeaths_greater_state)
+cf.bagging.death.US <- table(bagging.death.US.preds, covid.eviction.test$covidDeaths_greater_US)
+
+cf.boosting.case.state <- table(boosting.case.state.preds, covid.eviction.test$covidCases_greater_state)
+cf.boosting.case.US <- table(boosting.case.US.preds, covid.eviction.test$covidCases_greater_US)
+cf.boosting.death.state <- table(boosting.death.state.preds, covid.eviction.test$covidDeaths_greater_state)
+cf.boosting.death.US <- table(boosting.death.US.preds, covid.eviction.test$covidDeaths_greater_US)
+
+
+outcome.vars <- c("case.state", "case.US", "death.state", "death.US")
+cf.types <- c("tree", "bagging", "boosting")
+tree.accuracy <- c(accuracy(cf.tree.case.state))
+
+for(i in cf.types){
+  for(j in outcome.vars){
+    if(j == "case.state"){
+      cf <- paste("cf", i, j, sep=".")
+      preds <- eval(parse(text = paste(i, j, "preds", sep=".")))
+      eval(parse(text = cf)) <- table(preds, covid.eviction.test$)
+    }
+  }
+}
+
+covid.eviction.test %>% 
+  for(i in cf.types){
+    for(j in outcome.vars){
+      variable <- paste("cf", i, j, sep=".")
+      variable <- eval(parse(text = variable))
+      print(accuracy(variable))
+      print(kappa(variable))
+  }
+}
+
+
+```
+
+
+# Accuracy Function
+This function uses a confusion matrix as an input to calculate the accuracy.
+
+```{r accuracy}
+accuracy <- function(confusion.matrix){
+  #Inputs:
+  #confusion.matrix: confusion matrix of an algorithm (dimensions: 2x2)
+  
+  #Output: return accuracy
+  
+  #calculate accuracy (observed agreement)
+  accuracy <- (confusion.matrix[1, 1] + confusion.matrix[2, 2]) / sum(confusion.matrix)
+  
+  return(accuracy)
+}
+```
+
+
+# Cohen's Kappa Function
+This function uses a confusion matrix as an input to calculate Cohen's Kappa.
+```{r kappa}
+cohens.kappa <- function(confusion.matrix){
+  #Inputs:
+  #confusion.matrix: confusion matrix of an algorithm (dimensions: 2x2)
+  
+  #Output: return Cohen's kappa
+  
+  #calculate observed agreement (accuracy)
+  Po <- (confusion.matrix[1, 1] + confusion.matrix[2, 2]) / sum(confusion.matrix)
+  
+  #calculate probability of agreement by random chance
+  Pe <- 1 / sum(confusion.matrix)^2 *
+    (sum(confusion.matrix[1, ]*sum(confusion.matrix[, 1])) + 
+       sum(confusion.matrix[2, ]*sum(confusion.matrix[, 2])))
+  
+  #calculate Cohen's Kappa
+  kappa = (Po - Pe) / (1 - Pe)
+  
+  return(kappa)
+}
+```
+
+
+# Create a table to compare all models
+```{r comparison}
+
+outcome.vars <- c("case.state", "case.US", "death.state", "death.US")
+cf.types <- c("tree", "bagging", "boosting")
+tree.accuracy <- c(accuracy(cf.tree.case.state))
+
+for(i in cf.types){
+  for(j in outcome.vars){
+    variable <- paste("cf", i, j, sep=".")
+    variable <- eval(parse(text = variable))
+    accuracy(variable)
+    kappa(variable)
+  }
+}
+
+```
+
+
