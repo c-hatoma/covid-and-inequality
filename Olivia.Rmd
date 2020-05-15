@@ -1,7 +1,7 @@
 ---
 title: "Olivia"
 author: "Olivia Jin"
-date: "5/12/2020"
+date: "5/16/2020"
 output: html_document
 ---
 
@@ -17,7 +17,7 @@ library(caret)
 ```
 
 ## Load Data
-
+Loading appended data with COVID-19 and eviction data.
 ```{r data}
 
 covid.eviction <- read_csv("covid_eviction2.csv")
@@ -25,23 +25,31 @@ covid.eviction <- read_csv("covid_eviction2.csv")
 ```
 
 
+# Decision Tree and Random Forest
+In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
+
+
 ## Create Training and Testing Data
-
+Create two data, one for training the different models and the other for testing the models.
 ```{r training/testing}
+#generate index for training data
 index <- sample(nrow(covid.eviction),
-                size = nrow(covid.eviction),
-                replace = TRUE)
+                size = nrow(covid.eviction)*0.7,
+                replace = FALSE)
 
+#create training data
 covid.eviction.train <- covid.eviction[index,]
+
+#create testing data
 covid.eviction.test <- covid.eviction[-index,]
 
 ```
 
 
-## Decision Trees
-
-```{r decision trees}
-
+## Single Decision Tree
+Create 4 decision tree models for each of the 4 different outcome variables: covidCases_greater_state, covidCases_greater_US, covidDeaths_greater_state, covidDeaths_greater_US. The following also shows the decision trees generated for each of the models. 
+```{r single tree}
+#single decision tree model for covidCases_greater_state
 tree.case.state <- rpart(
   factor(covidCases_greater_state) ~
     `eviction-filing-rate` +
@@ -58,6 +66,7 @@ tree.case.state <- rpart(
 
 fancyRpartPlot(tree.case.state)
 
+#single decision tree model for covidCases_greater_US
 tree.case.US <- rpart(
   factor(covidCases_greater_US) ~
     `eviction-filing-rate` +
@@ -74,6 +83,7 @@ tree.case.US <- rpart(
 
 fancyRpartPlot(tree.case.US)
 
+#single decision tree model for covidDeaths_greater_state
 tree.death.state <- rpart(
   factor(covidDeaths_greater_state) ~
     `eviction-filing-rate` +
@@ -90,6 +100,7 @@ tree.death.state <- rpart(
 
 fancyRpartPlot(tree.death.state)
 
+#single decision tree model for covidDeaths_greater_US
 tree.death.US <- rpart(
   factor(covidDeaths_greater_US) ~
     `eviction-filing-rate` +
@@ -107,14 +118,94 @@ tree.death.US <- rpart(
 tree.death.US
 
 ```
-The last decision tree model, which uses covidDeaths_greater_US as the outcome, does not create a decision tree; it stops at the root node and does not split further. 
+The last decision tree model, which uses covidDeaths_greater_US as the outcome, does not create a decision tree; it stops at the root node and does not split further. Below, I try to replicate this model but only using county-level data from a single state to check whether that produces decision trees.
+
+```{r single tree 2}
+#single decision tree model of NY
+tree.death.US.NY <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "NY",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.NY)
+
+#single decision tree model of TX
+tree.death.US.TX <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "TX",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.TX)
+
+#single decision tree model of WA
+tree.death.US.WA <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "WA",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.WA)
+
+#single decision tree model of MI
+tree.death.US.MI <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "MI",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.MI)
+
+```
+When using a state-level subset of the data (in this case: NY, TX, WA and MI), the models generate decision trees. It is suggested that when looking at the whole US data, the independent variables are not good predictors of whether then COVID-19 death rate ofa county is greater than the US average, but when looking at the specific states, there are some independent variables that are good predictors of the outcome variable. 
 
 
 ## Bagging
-
-Number of trees = 25
+Create 4 bagging models for each of the outcome variables. I use the default number of trees in the built-in bagging model, which is 25 bootstrap replications. Below also shows the out-of-bag estimate of misclassification error.
 
 ```{r bagging}
+#bagging model for covidCases_greater_state
 bagging.case.state <- bagging(
   factor(covidCases_greater_state) ~
     `eviction-filing-rate` +
@@ -132,6 +223,7 @@ bagging.case.state <- bagging(
 
 bagging.case.state
 
+#bagging model for covidCases_greater_US
 bagging.case.US <- bagging(
   factor(covidCases_greater_US) ~
     `eviction-filing-rate` +
@@ -149,6 +241,7 @@ bagging.case.US <- bagging(
 
 bagging.case.US
 
+#bagging model for covidDeaths_greater_state
 bagging.death.state <- bagging(
   factor(covidDeaths_greater_state) ~
     `eviction-filing-rate` +
@@ -166,6 +259,7 @@ bagging.death.state <- bagging(
 
 bagging.death.state
 
+#bagging model for covidDeaths_greater_US
 bagging.death.US <- bagging(
   factor(covidDeaths_greater_US) ~
     `eviction-filing-rate` +
@@ -186,13 +280,11 @@ bagging.death.US
 ```
 
 
-
 ## Boosting
-
-Number of trees = 25
+There are 4 different boosting models for each of the outcome variables. The number of trees is 25, which is the default number for the built-in adaboost function. The outcomes also show the weights of each of the trees.
 
 ```{r boosting}
-
+#boosting model for covidCases_greater_state
 boosting.case.state <- adaboost(
   covidCases_greater_state ~
     eviction.filing.rate +
@@ -210,6 +302,7 @@ boosting.case.state <- adaboost(
 
 boosting.case.state
 
+#boosting model for covidCases_greater_US
 boosting.case.US <- adaboost(
   covidCases_greater_US ~
     eviction.filing.rate +
@@ -227,6 +320,7 @@ boosting.case.US <- adaboost(
 
 boosting.case.US
 
+#boosting model for covidDeaths_greater_state
 boosting.death.state <- adaboost(
   covidDeaths_greater_state ~
     eviction.filing.rate +
@@ -244,7 +338,7 @@ boosting.death.state <- adaboost(
 
 boosting.death.state
 
-
+#boosting model for covidDeaths_greater_US
 boosting.death.US <- adaboost(
   covidDeaths_greater_US ~
     eviction.filing.rate +
@@ -266,12 +360,10 @@ boosting.death.US
 
 
 ## Random Forest
-
-Number of trees = 500
-Number of variables tried at each split = 3
+Again, there are 4 different random forest models for each of the outcome variables. The type of random forest is classification, and each model has 500 trees and 3 variables tried at each split. The outcome below shows out-of-bag estimate of error rate and the confusion matrix for each of the models.
 
 ```{r random forest}
-
+#random forest model for covidCases_greater_state
 rf.case.state <- randomForest(
   factor(covidCases_greater_state) ~
     eviction.filing.rate +
@@ -289,7 +381,7 @@ rf.case.state <- randomForest(
 
 rf.case.state
 
-
+#random forest model for covidCases_greater_US
 rf.case.US <- randomForest(
   factor(covidCases_greater_US) ~
     eviction.filing.rate +
@@ -307,7 +399,7 @@ rf.case.US <- randomForest(
 
 rf.case.US
 
-
+#random forest model for covidDeaths_greater_state
 rf.death.state <- randomForest(
   factor(covidDeaths_greater_state) ~
     eviction.filing.rate +
@@ -325,6 +417,7 @@ rf.death.state <- randomForest(
 
 rf.death.state
 
+#random forest model for covidDeaths_greater_US
 rf.death.US <- randomForest(
   factor(covidDeaths_greater_US) ~
     eviction.filing.rate +
@@ -347,7 +440,8 @@ rf.death.US
 
 ## Test the Models on Testing Data
 
-# First, predict outcome using models
+### Predict outcome on testing data using models
+We predict the outcome of each variables for testing data using the models we generated above. 
 ```{r predict}
 tree.case.state.preds <-
   ifelse(predict(tree.case.state, covid.eviction.test)[, 2] > 0.5, 1, 0)
@@ -391,8 +485,8 @@ rf.death.US.preds <-
 ```
 
 
-# Function that corrects confusion matrix that is not 2x2
-
+### Function that corrects confusion matrix that is not 2x2
+This function corrects confusion matrix that is not 2x2. In the case of our data, the tree.death.US model predicts all the outcomes to be 0, thus the confusion matrix is 1x2. This function corrects it to a 2x2 matrix, so that all confusion matrices would have the same dimensions.
 ```{r cm correction}
 correct.cm <- function(confusion.matrix) {
   #Inputs:
@@ -427,8 +521,8 @@ correct.cm <- function(confusion.matrix) {
 ```
 
 
-# Create confusion matrices for each model
-
+### Create confusion matrices for each model
+We create confusion matrices for each of the models, and use the function that corrects 1x2 or 2x1 matrices into a 2x2 matrix to make sure that all the matrices are of the same dimesion.
 ``` {r cm}
 
 cm.types <- c("tree", "bagging", "boosting", "rf")
@@ -461,8 +555,7 @@ for (i in cm.types) {
 
 
 # Accuracy Function
-This function uses a confusion matrix as an input to calculate the accuracy.
-
+This function uses a 2x2 confusion matrix as an input to calculate the accuracy.
 ```{r accuracy}
 accuracy <- function(confusion.matrix) {
   #Inputs:
@@ -480,7 +573,7 @@ accuracy <- function(confusion.matrix) {
 
 
 # Cohen's Kappa Function
-This function uses a confusion matrix as an input to calculate Cohen's Kappa.
+This function uses a 2x2 confusion matrix as an input to calculate Cohen's Kappa.
 ```{r kappa}
 kappa <- function(confusion.matrix) {
   #Inputs:
@@ -506,6 +599,7 @@ kappa <- function(confusion.matrix) {
 
 
 # Create a table to compare all models
+We calculate the accuracy and the kappa of each model, and we use that to generate a comparison table that shows the accuracy and the kappa for each type of model for each outcome variable. 
 ```{r comparison}
 
 outcome.vars <- c("case.state", "case.US", "death.state", "death.US")
@@ -589,4 +683,4 @@ comparison <- data.frame(outcome.vars, tree.accuracy, tree.kappa, bagging.accura
 comparison
 ```
 
-Looking at the comparison table, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have high variance, and by bagging and boosting, variance is lowered. 
+Looking at the comparison table above, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have high variance, and by bagging and boosting decision trees, variance is lowered. Similarly, random forests also reduce variance by training on different samples of the data. 
