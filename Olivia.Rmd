@@ -45,7 +45,7 @@ covid.eviction.test <- covid.eviction[-index,]
 ```
 
 
-## Single Decision Tree
+## Single Decision Trees
 Create 4 decision tree models for each of the 4 different outcome variables: covidCases_greater_state, covidCases_greater_US, covidDeaths_greater_state, covidDeaths_greater_US. The following also shows the decision trees generated for each of the models. 
 ```{r single tree}
 #single decision tree model for covidCases_greater_state
@@ -359,7 +359,7 @@ boosting.death.US
 ```
 
 
-## Random Forest
+## Random Forests
 Again, there are 4 different random forest models for each of the outcome variables. The type of random forest is classification, and each model has 500 trees and 3 variables tried at each split. The outcome below shows out-of-bag estimate of error rate and the confusion matrix for each of the models.
 
 ```{r random forest}
