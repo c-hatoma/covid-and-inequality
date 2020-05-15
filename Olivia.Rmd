@@ -1,10 +1,13 @@
 ---
-title: "Olivia"
+title: "Single Decision Trees, Bagging, Boosting and Random Forests"
 author: "Olivia Jin"
 date: "5/16/2020"
 output: html_document
 ---
 
+In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
+
+### Libraries
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -16,17 +19,13 @@ library(randomForest)
 library(caret)
 ```
 
-## Load Data
+### Load Data
 Loading appended data with COVID-19 and eviction data.
 ```{r data}
 
 covid.eviction <- read_csv("covid_eviction2.csv")
 
 ```
-
-
-# Decision Tree and Random Forest
-In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
 
 
 ## Create Training and Testing Data
