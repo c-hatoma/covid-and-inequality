@@ -12,38 +12,15 @@ library(rpart)
 library(rattle)
 library(ipred)
 library(fastAdaboost)
+library(randomForest)
+library(caret)
 ```
 
 ## Load Data
 
-```{r}
+```{r data}
+
 covid.eviction <- read_csv("covid_eviction2.csv")
-```
-
-## Rename Variables
-
-```{r rename}
-# covid.eviction <- covid.eviction %>% 
-#   rename(
-#     eviction.filing.rate = "eviction-filing-rate",
-#     poverty.rate = "poverty-rate",
-#     pct.renter.occupied = "pct-renter-occupied",
-#     median.household.income = "median-household-income",
-#     pct.white = "pct-white",
-#     pct.af.am = "pct-af-am",
-#     pct.hispanic = "pct-hispanic",
-#     pct.am.ind = "pct-am-ind",
-#     pct.asian = "pct-asian",
-#     pct.nh.pi = "pct-nh-pi",
-#     pct.multiple = "pct-multiple",
-#     pct.other = "pct-other"
-#   ) 
-# 
-# covid.eviction <- covid.eviction %>% 
-#   mutate(covidCases_greater_state = factor(covidCases_greater_state)) %>% 
-#   mutate(covidCases_greater_US = factor(covidCases_greater_US)) %>% 
-#   mutate(covidDeaths_greater_state = factor(covidDeaths_greater_state)) %>% 
-#   mutate(covidDeaths_greater_US = factor(covidDeaths_greater_US)) 
 
 ```
 
@@ -51,7 +28,6 @@ covid.eviction <- read_csv("covid_eviction2.csv")
 ## Create Training and Testing Data
 
 ```{r training/testing}
-
 index <- sample(nrow(covid.eviction),
                 size = nrow(covid.eviction),
                 replace = TRUE)
@@ -80,6 +56,7 @@ tree.case.state <- rpart(
   data = covid.eviction.train
 )
 
+fancyRpartPlot(tree.case.state)
 
 tree.case.US <- rpart(
   factor(covidCases_greater_US) ~
@@ -95,6 +72,7 @@ tree.case.US <- rpart(
   data = covid.eviction.train
 )
 
+fancyRpartPlot(tree.case.US)
 
 tree.death.state <- rpart(
   factor(covidDeaths_greater_state) ~
@@ -110,6 +88,7 @@ tree.death.state <- rpart(
   data = covid.eviction.train
 )
 
+fancyRpartPlot(tree.death.state)
 
 tree.death.US <- rpart(
   factor(covidDeaths_greater_US) ~
@@ -125,11 +104,15 @@ tree.death.US <- rpart(
   data = covid.eviction.train
 )
 
-fancyRpartPlot(tree.case.state)
+tree.death.US
+
 ```
+The last decision tree model, which uses covidDeaths_greater_US as the outcome, does not create a decision tree; it stops at the root node and does not split further. 
 
 
 ## Bagging
+
+Number of trees = 25
 
 ```{r bagging}
 bagging.case.state <- bagging(
@@ -147,6 +130,7 @@ bagging.case.state <- bagging(
   coob = TRUE
 )
 
+bagging.case.state
 
 bagging.case.US <- bagging(
   factor(covidCases_greater_US) ~
@@ -163,6 +147,7 @@ bagging.case.US <- bagging(
   coob = TRUE
 )
 
+bagging.case.US
 
 bagging.death.state <- bagging(
   factor(covidDeaths_greater_state) ~
@@ -179,6 +164,8 @@ bagging.death.state <- bagging(
   coob = TRUE
 )
 
+bagging.death.state
+
 bagging.death.US <- bagging(
   factor(covidDeaths_greater_US) ~
     `eviction-filing-rate` +
@@ -194,11 +181,15 @@ bagging.death.US <- bagging(
   coob = TRUE
 )
 
+bagging.death.US
+
 ```
 
 
 
 ## Boosting
+
+Number of trees = 25
 
 ```{r boosting}
 
@@ -217,6 +208,7 @@ boosting.case.state <- adaboost(
   nIter = 25
 )
 
+boosting.case.state
 
 boosting.case.US <- adaboost(
   covidCases_greater_US ~
@@ -233,6 +225,7 @@ boosting.case.US <- adaboost(
   nIter = 25
 )
 
+boosting.case.US
 
 boosting.death.state <- adaboost(
   covidDeaths_greater_state ~
@@ -249,6 +242,9 @@ boosting.death.state <- adaboost(
   nIter = 25
 )
 
+boosting.death.state
+
+
 boosting.death.US <- adaboost(
   covidDeaths_greater_US ~
     eviction.filing.rate +
@@ -263,6 +259,88 @@ boosting.death.US <- adaboost(
   data = data.frame(covid.eviction.train),
   nIter = 25
 )
+
+boosting.death.US
+
+```
+
+
+## Random Forest
+
+Number of trees = 500
+Number of variables tried at each split = 3
+
+```{r random forest}
+
+rf.case.state <- randomForest(
+  factor(covidCases_greater_state) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.case.state
+
+
+rf.case.US <- randomForest(
+  factor(covidCases_greater_US) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.case.US
+
+
+rf.death.state <- randomForest(
+  factor(covidDeaths_greater_state) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.death.state
+
+rf.death.US <- randomForest(
+  factor(covidDeaths_greater_US) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.death.US
 
 ```
 
@@ -298,6 +376,17 @@ boosting.death.state.preds <-
   predict(boosting.death.state, data.frame(covid.eviction.test))$class
 boosting.death.US.preds <-
   predict(boosting.death.US, data.frame(covid.eviction.test))$class
+
+
+rf.case.state.preds <-
+  predict(rf.case.state, data.frame(covid.eviction.test))
+rf.case.US.preds <-
+  predict(rf.case.US, data.frame(covid.eviction.test))
+rf.death.state.preds <-
+  predict(rf.death.state, data.frame(covid.eviction.test))
+rf.death.US.preds <-
+  predict(rf.death.US, data.frame(covid.eviction.test))
+
 
 ```
 
@@ -339,24 +428,10 @@ correct.cm <- function(confusion.matrix) {
 
 
 # Create confusion matrices for each model
+
 ``` {r cm}
 
-# cm.tree.case.state <- table(tree.case.state.preds, covid.eviction.test$covidCases_greater_state)
-# cm.tree.case.US <- table(tree.case.US.preds, covid.eviction.test$covidCases_greater_US)
-# cm.tree.death.state <- table(tree.death.state.preds, covid.eviction.test$covidDeaths_greater_state)
-# cm.tree.death.US <- table(tree.death.US.preds, covid.eviction.test$covidDeaths_greater_US)
-#
-# cm.bagging.case.state <- table(bagging.case.state.preds, covid.eviction.test$covidCases_greater_state)
-# cm.bagging.case.US <- table(bagging.case.US.preds, covid.eviction.test$covidCases_greater_US)
-# cm.bagging.death.state <- table(bagging.death.state.preds, covid.eviction.test$covidDeaths_greater_state)
-# cm.bagging.death.US <- table(bagging.death.US.preds, covid.eviction.test$covidDeaths_greater_US)
-#
-# cm.boosting.case.state <- table(boosting.case.state.preds, covid.eviction.test$covidCases_greater_state)
-# cm.boosting.case.US <- table(boosting.case.US.preds, covid.eviction.test$covidCases_greater_US)
-# cm.boosting.death.state <- table(boosting.death.state.preds, covid.eviction.test$covidDeaths_greater_state)
-# cm.boosting.death.US <- table(boosting.death.US.preds, covid.eviction.test$covidDeaths_greater_US)
-
-cm.types <- c("tree", "bagging", "boosting")
+cm.types <- c("tree", "bagging", "boosting", "rf")
 outcome.vars <-
   c("case.state", "case.US", "death.state", "death.US")
 
@@ -490,9 +565,28 @@ boosting.kappa <- c(
 )
 
 
-comparison <- data.frame(outcome.vars, tree.accuracy, tree.kappa, bagging.accuracy, bagging.kappa, boosting.accuracy, boosting.kappa)
+rf.accuracy <- NULL
+rf.kappa <- NULL
+
+rf.accuracy <- c(
+  accuracy(cm.rf.case.state),
+  accuracy(cm.rf.case.US),
+  accuracy(cm.rf.death.state),
+  accuracy(cm.rf.death.US)
+)
+
+rf.kappa <- c(
+  kappa(cm.rf.case.state),
+  kappa(cm.rf.case.US),
+  kappa(cm.rf.death.state),
+  kappa(cm.rf.death.US)
+)
+
+
+
+comparison <- data.frame(outcome.vars, tree.accuracy, tree.kappa, bagging.accuracy, bagging.kappa, boosting.accuracy, boosting.kappa, rf.accuracy, rf.kappa)
 
 comparison
 ```
 
-Looking at the comparison table, boosting has the highest accuracy and kappa across all 4 outcome variables. Bagging generally does better than a single decision tree. This is as expected, as decision trees have high variance, and by bagging and boosting, variance is lowered. 
+Looking at the comparison table, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have high variance, and by bagging and boosting, variance is lowered. 
