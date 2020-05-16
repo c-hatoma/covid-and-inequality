@@ -7,7 +7,7 @@ output: html_document
 
 In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
 
-### Libraries
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -17,12 +17,13 @@ library(ipred)
 library(fastAdaboost)
 library(randomForest)
 library(caret)
+library(knitr)
 ```
 
 ### Load Data
 Loading appended data with COVID-19 and eviction data.
 ```{r data}
-
+#read the csv data file
 covid.eviction <- read_csv("covid_eviction2.csv")
 
 ```
@@ -714,12 +715,14 @@ rf.kappa <- c(
 #generate data frame of accuracy and kappa values of each models for different outcome variables
 comparison <- data.frame(outcome.vars, tree.accuracy, tree.kappa, bagging.accuracy, bagging.kappa, boosting.accuracy, boosting.kappa, rf.accuracy, rf.kappa)
 
-comparison
+kable(comparison, digits = 3)
 ```
 
 Looking at the comparison table above, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus accuracy and kappa of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
 
 Works Cited:
+
 https://towardsdatascience.com/understanding-the-bias-variance-tradeoff-165e6942b229
 https://towardsdatascience.com/ensemble-methods-bagging-boosting-and-stacking-c9214a10a205
 https://towardsdatascience.com/why-random-forest-is-my-favorite-machine-learning-model-b97651fa3706
+
