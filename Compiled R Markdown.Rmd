@@ -1,0 +1,1574 @@
+---
+title: "Studying eviction-related variables and their relevance with COVID19 statistics"
+author: "Olivia Jin, Jennifer Ko, Bea Lee, Chica Morrow"
+date: "5/17/2020"
+output: html_document
+---
+
+# Introduction
+Our group aims to look at US county-level data on eviction and demographics (e.g. eviction filings, poverty rate, and racial distributions), as well as their relevance with Covid-19 statistics like death and case rates. Using supervised and unsupervised learning, we explore the data that we obtained from USAFacts (https://usafacts.org/visualizations/coronavirus-covid-19-spread-map), Eviction Lab (https://evictionlab.org/), and US Census as of 4/30/2020 (https://www.census.gov/popclock/).
+
+Given the wide range of learning techniques we explore in our project, each model address a different question. 
+
+# Table of Contents
+Supervised Learning:
+- 1. LM (simple, long)
+- 2. knn
+- 3. Single Decision Trees, Bagging, Boosting and Random Forests 
+- 4. LDA
+
+Unsupervised Learning: 
+- 1. PCA
+- 2. Hierarchical
+- 3. K-Means
+
+Overall Analysis
+- Supervised vs Unsupervised
+- Supervised
+- Unsupervised
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(class)
+library(dplyr)
+library(caret)
+library(ipred)
+library(rvest)
+library(data.table)
+library(tidytext)
+library(stringr)
+library(ggrepel)
+library(dendextend)
+library(factoextra)
+library(rpart)
+library(rattle)
+library(fastAdaboost)
+library(randomForest)
+library(knitr)
+library(ISLR)
+```
+
+# [SUPERVISED LEARNING]
+### Load Data
+Loading appended data with COVID-19 and eviction data.
+```{r data}
+
+#read the csv data file
+covid.eviction <- read_csv("covid_eviction2.csv")
+```
+
+# 1. LM
+## Simple LM
+```{r}
+lm1 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`,
+          data = covid.eviction)
+summary(lm1)
+```
+Adjusted R-squared is low, meaning while the eviction filing rate is significant, its variations account for only 2% of the variation in COVID cases.
+
+## Long LM
+```{r}
+lm12 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`*`pct-af-am` + `pct-hispanic` +  `pct-asian`,
+          data = covid.eviction)
+summary(lm12)
+```
+adj r-sq Increases significantly, all variables highly significant.
+Shows that as pct-af-am increases, eviction filing rate matters less.
+Magnitude of coefficients:
+1) pct-asian
+2) eviction-filing-rate
+3) pct-af-am
+4) pct-hispanic
+5) eviction-filing-rate:pct-af-am
+
+# 2. KNN
+For my KNN function, I am using accuracy as my metric for optimization. Because there is a tradeoff between increasing values of K and reducing the number of classes, and a tradeoff between reducing values of K and response to variation in the data, I make this decision by plotting accuracies of our KNN function at various K's (1-10) and choose the smallest K at which marginal increase in accuracy seems to taper off.
+
+```{r}
+# create function to normalize axis to improve distance calculations
+normalize.function <- function(x){
+  (x - min(x))/(max(x) - min(x))
+}
+
+# extracting columns of interest based on lm models, in this case eviction filing rates and percentage of residents who are african american
+covid.eviction2 <- covid.eviction[, c(11, 21, 41)] %>%
+  na.omit()
+
+# applying normalization function to variables of interest
+ce2 <- covid.eviction2
+ce2$pct.af.am <- normalize.function(ce2$`pct-af-am`)
+ce2$eviction.filing.rate <- normalize.function(ce2$`eviction-filing-rate`)
+
+# run loop through ks 1-20 and graph to find optimal K (where additional k has significant marginal effect on accuracy)
+store <- NULL
+accuracy <- NULL
+
+for(k in 1:10){
+  
+  for(i in 1:nrow(ce2)){
+    
+    train <- ce2[-i,]
+    test <- ce2[i,]
+    
+    prediction <- knn(train = train %>%
+                        dplyr::select(pct.af.am, eviction.filing.rate),
+                      test = test %>%
+                        dplyr::select(pct.af.am, eviction.filing.rate),
+                      train$covidCases_greater_state,
+                      k)
+      
+    store[i] <- ifelse(prediction == ce2$covidCases_greater_state[i],
+                       1, 
+                       0)
+    
+  }
+  
+  accuracy[k] <- mean(store)
+  
+    }
+
+k <- (1:10)
+
+find.k <- data.frame(k, accuracy)
+
+find.k %>%
+  ggplot(aes(x = k, y = accuracy)) +
+  geom_point() +
+  geom_line()
+```
+
+We'll go with k = 7.
+```{r}
+# create a grid of normalized values within the range of our training data for visualization:
+eviction.norm.seq <- seq(from = 0, to = 1, by = .01)
+afam.norm.seq <- seq(from = 0, to = 1, by = .01)
+norm.grid <- expand.grid(eviction.norm.seq, afam.norm.seq)
+colnames(norm.grid)[c(1,2)] <- c('eviction.filing.rate', 'pct.af.am') 
+
+knn.grid <- norm.grid %>%
+  mutate(prediction = knn(train = ce2 %>%
+                            dplyr::select(pct.af.am, eviction.filing.rate),
+                          test = norm.grid,
+                          ce2$covidCases_greater_state,
+                          7))
+
+knn.grid %>%
+  ggplot(aes(x = eviction.filing.rate,
+             y = pct.af.am)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.1) +
+  geom_point(data = ce2,
+             mapping = aes(x = eviction.filing.rate,
+                           y = pct.af.am,
+                           color = factor(covidCases_greater_state)),
+             size = 3) +
+  xlab('County Eviction Filing Rate') +
+  ylab('County Percent African American Residents') +
+  ggtitle('How well does our KNN model predict county COVID cases?') +
+  scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
+```
+
+Looking at this plot, we can see that there are a lot of blue predicitons ocurring between 0.50 and 1.00 eviction filing rates where there aren't any original data. That suggests that our model would falsely predict a lot of 'Less than state avg' in places where we have no original data to confirm that to be true. This may be driven by an outlier in eviction filing rates near 1.00 (normalized). This suggests that a KNN model is less helpful in making predictions on values that it isn't trained on. Applied to our real world example, if testing is largely done in counties with low eviction rates or eviction rates really are skewed so drastically, KNN may not be a great predictor for COVID case rates in underrepresented areas.
+
+How good is this KNN model?
+# Confusion Matrix for KNN
+```{r}
+# subsetting original data to train & test
+ran <- sample(1:nrow(ce2), 0.9 * nrow(ce2))
+
+train <- ce2[ran, c(4,5)]
+test <- ce2[-ran, c(4,5)]
+train.cl <- ce2[ran, 3]
+test.cl <- ce2[-ran, 3]
+
+# making sure dependent variable is read as factor
+train.cl$covidCases_greater_state <- as.factor(train.cl$covidCases_greater_state)
+test.cl$covidCases_greater_state <- as.factor(test.cl$covidCases_greater_state)
+
+# creating column of predictions
+knn.predict <- test %>%
+  mutate(prediction = knn(train = train,
+                          test = test,
+                          train.cl$covidCases_greater_state,
+                          4))
+
+# confusion matrix
+confusionMatrix(knn.predict$prediction, test.cl$covidCases_greater_state)
+```
+
+This confusion matrix gives us several ways to measure how good our model is.
+
+# Accuracy:
+
+
+# Precision:
+
+
+# Cohen's Kappa:
+Kappa compares observed accuracy and compares it to the accuracy we would expect if classification was random. Our Kappa of 0.0765. Since Kappas range from -1 tp 1 in value, our Kappa represents only slight agreement between 
+
+
+#3.Single Decision Trees, Bagging, Boosting and Random Forests 
+In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
+
+## Create Training and Testing Data
+Create two data, one for training the different models and the other for testing the models.
+```{r training/testing}
+#generate index for training data
+index <- sample(nrow(covid.eviction),
+                size = nrow(covid.eviction)*0.7,
+                replace = FALSE)
+
+#create training data
+covid.eviction.train <- covid.eviction[index,]
+
+#create testing data
+covid.eviction.test <- covid.eviction[-index,]
+
+```
+
+## Single Decision Trees
+Create 4 decision tree models for each of the 4 different outcome variables: covidCases_greater_state, covidCases_greater_US, covidDeaths_greater_state, covidDeaths_greater_US. The following also shows the decision trees generated for each of the models. 
+```{r single tree}
+#single decision tree model for covidCases_greater_state
+tree.case.state <- rpart(
+  factor(covidCases_greater_state) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train
+)
+
+fancyRpartPlot(tree.case.state)
+
+#single decision tree model for covidCases_greater_US
+tree.case.US <- rpart(
+  factor(covidCases_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train
+)
+
+fancyRpartPlot(tree.case.US)
+
+#single decision tree model for covidDeaths_greater_state
+tree.death.state <- rpart(
+  factor(covidDeaths_greater_state) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train
+)
+
+fancyRpartPlot(tree.death.state)
+
+#single decision tree model for covidDeaths_greater_US
+tree.death.US <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train
+)
+
+tree.death.US
+
+```
+
+Amongst the four decision tree models, the last one, which uses covidDeaths_greater_US as the outcome, does not create a decision tree; it stops at the root node and does not split further. Below, I try to replicate this model but only using county-level data from a single state to check whether that produces decision trees.
+
+```{r single tree 2}
+#single decision tree model of NY
+tree.death.US.NY <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "NY",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.NY)
+
+#single decision tree model of TX
+tree.death.US.TX <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "TX",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.TX)
+
+#single decision tree model of WA
+tree.death.US.WA <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "WA",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.WA)
+
+#single decision tree model of MI
+tree.death.US.MI <- rpart(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  subset = State == "MI",
+  minsplit = 10
+)
+
+fancyRpartPlot(tree.death.US.MI)
+
+```
+
+When using a state-level subset of the data (in this case: NY, TX, WA and MI), the models generate decision trees. It is suggested that when looking at the whole US data, the independent variables are not good predictors of whether then COVID-19 death rate of a county is greater than the US average, but when looking at the specific states, there are some independent variables that are good predictors of the outcome variable. 
+
+
+## Bagging
+Create 4 bagging models for each of the outcome variables. I use the default number of trees in the built-in bagging model, which is 25 bootstrap replications. Below also shows the out-of-bag estimate of misclassification error.
+
+```{r bagging}
+#bagging model for covidCases_greater_state
+bagging.case.state <- bagging(
+  factor(covidCases_greater_state) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  coob = TRUE
+)
+
+bagging.case.state
+
+#bagging model for covidCases_greater_US
+bagging.case.US <- bagging(
+  factor(covidCases_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  coob = TRUE
+)
+
+bagging.case.US
+
+#bagging model for covidDeaths_greater_state
+bagging.death.state <- bagging(
+  factor(covidDeaths_greater_state) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  coob = TRUE
+)
+
+bagging.death.state
+
+#bagging model for covidDeaths_greater_US
+bagging.death.US <- bagging(
+  factor(covidDeaths_greater_US) ~
+    `eviction-filing-rate` +
+    `poverty-rate` +
+    `pct-renter-occupied` +
+    `median-household-income` +
+    `pct-white` +
+    `pct-af-am` +
+    `pct-hispanic` +
+    `pct-asian` +
+    `population`,
+  data = covid.eviction.train,
+  coob = TRUE
+)
+
+bagging.death.US
+
+```
+
+
+## Boosting
+There are 4 different boosting models for each of the outcome variables. The number of trees is 25, which is the default number for the built-in adaboost function. The outcomes also show the weights of each of the trees.
+
+```{r boosting}
+#boosting model for covidCases_greater_state
+boosting.case.state <- adaboost(
+  covidCases_greater_state ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train),
+  nIter = 25
+)
+
+boosting.case.state
+
+#boosting model for covidCases_greater_US
+boosting.case.US <- adaboost(
+  covidCases_greater_US ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train),
+  nIter = 25
+)
+
+boosting.case.US
+
+#boosting model for covidDeaths_greater_state
+boosting.death.state <- adaboost(
+  covidDeaths_greater_state ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train),
+  nIter = 25
+)
+
+boosting.death.state
+
+#boosting model for covidDeaths_greater_US
+boosting.death.US <- adaboost(
+  covidDeaths_greater_US ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train),
+  nIter = 25
+)
+
+boosting.death.US
+
+```
+
+
+## Random Forests
+Again, there are 4 different random forest models for each of the outcome variables. The type of random forest is classification, and each model has 500 trees and 3 variables tried at each split. The outcome below shows out-of-bag estimate of error rate and the confusion matrix for each of the models.
+
+```{r random forest}
+#random forest model for covidCases_greater_state
+rf.case.state <- randomForest(
+  factor(covidCases_greater_state) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.case.state
+
+#random forest model for covidCases_greater_US
+rf.case.US <- randomForest(
+  factor(covidCases_greater_US) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.case.US
+
+#random forest model for covidDeaths_greater_state
+rf.death.state <- randomForest(
+  factor(covidDeaths_greater_state) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.death.state
+
+#random forest model for covidDeaths_greater_US
+rf.death.US <- randomForest(
+  factor(covidDeaths_greater_US) ~
+    eviction.filing.rate +
+    poverty.rate +
+    pct.renter.occupied +
+    median.household.income +
+    pct.white +
+    pct.af.am +
+    pct.hispanic +
+    pct.asian +
+    population,
+  data = data.frame(covid.eviction.train) %>%
+    na.omit()
+)
+
+rf.death.US
+
+```
+
+
+## Test the Models on Testing Data
+
+### Predict outcome on testing data using models
+We predict the outcome of each variables for testing data using the models we generated above. 
+```{r predict}
+#predictions for single decision tree models
+tree.case.state.preds <-
+  ifelse(predict(tree.case.state, covid.eviction.test)[, 2] > 0.5, 1, 0)
+tree.case.US.preds <-
+  ifelse(predict(tree.case.US, covid.eviction.test)[, 2] > 0.5, 1, 0)
+tree.death.state.preds <-
+  ifelse(predict(tree.death.state, covid.eviction.test)[, 2] > 0.5, 1, 0)
+tree.death.US.preds <-
+  ifelse(predict(tree.death.US, covid.eviction.test)[, 2] > 0.5, 1, 0)
+
+#predictions for bagging models
+bagging.case.state.preds <-
+  predict(bagging.case.state, covid.eviction.test)
+bagging.case.US.preds <-
+  predict(bagging.case.US, covid.eviction.test)
+bagging.death.state.preds <-
+  predict(bagging.death.state, covid.eviction.test)
+bagging.death.US.preds <-
+  predict(bagging.death.state, covid.eviction.test)
+
+#predictions for boosting models
+boosting.case.state.preds <-
+  predict(boosting.case.state, data.frame(covid.eviction.test))$class
+boosting.case.US.preds <-
+  predict(boosting.case.US, data.frame(covid.eviction.test))$class
+boosting.death.state.preds <-
+  predict(boosting.death.state, data.frame(covid.eviction.test))$class
+boosting.death.US.preds <-
+  predict(boosting.death.US, data.frame(covid.eviction.test))$class
+
+#predictions for random forest models
+rf.case.state.preds <-
+  predict(rf.case.state, data.frame(covid.eviction.test))
+rf.case.US.preds <-
+  predict(rf.case.US, data.frame(covid.eviction.test))
+rf.death.state.preds <-
+  predict(rf.death.state, data.frame(covid.eviction.test))
+rf.death.US.preds <-
+  predict(rf.death.US, data.frame(covid.eviction.test))
+
+```
+
+
+### Function that corrects confusion matrix that is not 2x2
+This function corrects confusion matrix that is not 2x2. In the case of our data, the tree.death.US model predicts all the outcomes to be 0, thus the confusion matrix is 1x2. This function corrects it to a 2x2 matrix, so that all confusion matrices would have the same dimensions.
+```{r cm correction}
+correct.cm <- function(confusion.matrix) {
+  #Inputs:
+  #confusion.matrix: confusion matrix, ideally 2x2, but could be 1x2 or 2x1
+  
+  #Output: return a corrected 2x2 confusion matrix as a table
+  
+  #check if confusion matrix is 2x2
+  if (nrow(confusion.matrix) == 2 & ncol(confusion.matrix) == 2) {
+    #if 2x2, nothing needs to be corrected
+    corrected <- confusion.matrix
+   
+    #if 1x2 (missing row)
+  } else if (nrow(confusion.matrix) == 1) {
+    #check the rowname that exists vs missing
+    if (rownames(confusion.matrix)[1] == 0) {
+      #if outcome == 1 row is missing, add the row (0, 0) to the bottom
+      corrected <- rbind(confusion.matrix, c(0, 0))
+      rownames(corrected) <- c(0, 1)
+      #if outcome == 0 row is missing, add the row (0, 0) to the top
+    } else if (rownames(confusion.matrix)[1] == 1) {
+      corrected <- rbind(c(0, 0), confusion.matrix)
+      rownames(corrected) <- c(0, 1)
+    }
+    
+    #if 2x1 (missing column)
+  } else if (ncol(confusion.matrix) == 1) {
+    #check the colname that exists vs missing
+    if (colnames(confusion.matrix)[1] == 0) {
+      #if outcome == 1 col is missing, add the col (0, 0) to the right
+      corrected <- cbind(confusion.matrix, c(0, 0))
+      colnames(corrected) <- c(0, 1)
+      #if outcome == 0 col is missing, add the col (0, 0) to the left
+    } else if (colnames(confusion.matrix)[1] == 1) {
+      corrected <- cbind(c(0, 0), confusion.matrix)
+      colnames(corrected) <- c(0, 1)
+    }
+  }
+ 
+   #make sure that the final corrected matrix is in a table format
+  corrected <- as.table(corrected)
+  
+  #return corrected 2x2 confusion matrix
+  return(corrected)
+}
+
+```
+
+
+### Create confusion matrices for each model
+We create confusion matrices for each of the models, and use the function that corrects 1x2 or 2x1 matrices into a 2x2 matrix to make sure that all the matrices are of the same dimesion.
+``` {r cm}
+#vector of 4 different model types
+model.types <- c("tree", "bagging", "boosting", "rf")
+
+#vector of 4 different outcome variables
+outcome.vars <-
+  c("case.state", "case.US", "death.state", "death.US")
+
+#for loop to generate confusion matrices for each outcome variable using 4 different models 
+for (i in model.types) {
+  for (j in outcome.vars) {
+    
+    #creates string variable with the confusion matrix name (eg. "cm.tree.case.state")
+    cm <- paste("cm", i, j, sep = ".")
+    
+    #evaluates the prediction of each model (eg. tree.case.state.preds)
+    preds <- eval(parse(text = paste(i, j, "preds", sep = ".")))
+    
+    #for each outcome variable, it assigns the confusion matrix table to 'cm'
+    if (j == "case.state") {
+      assign(cm,
+             table(preds, covid.eviction.test$covidCases_greater_state))
+    } else if (j == "case.US") {
+      assign(cm,
+             table(preds, covid.eviction.test$covidCases_greater_US))
+    } else if (j == "death.state") {
+      assign(cm,
+             table(preds, covid.eviction.test$covidDeaths_greater_state))
+    } else if (j == "death.US") {
+      assign(cm,
+             table(preds, covid.eviction.test$covidDeaths_greater_US))
+    }
+    
+    #each confusion matrix generated above is corrected to a 2x2 table using the corrected.cm() function
+    assign(cm, correct.cm(eval(as.name(cm))))
+  }
+}
+
+
+```
+
+# Accuracy Function
+This function uses a 2x2 confusion matrix as an input to calculate the accuracy.
+```{r accuracy}
+accuracy <- function(confusion.matrix) {
+  #Inputs:
+  #confusion.matrix: confusion matrix of an algorithm (dimensions: 2x2)
+  
+  #Output: return accuracy
+  
+  #calculate accuracy (observed agreement)
+  accuracy <-
+    (confusion.matrix[1, 1] + confusion.matrix[2, 2]) / sum(confusion.matrix)
+  
+  return(accuracy)
+}
+```
+
+# Cohen's Kappa Function
+This function uses a 2x2 confusion matrix as an input to calculate Cohen's Kappa.
+```{r kappa}
+kappa <- function(confusion.matrix) {
+  #Inputs:
+  #confusion.matrix: confusion matrix of an algorithm (dimensions: 2x2)
+  
+  #Output: return Cohen's kappa
+  
+  #calculate observed agreement (accuracy)
+  Po <-
+    (confusion.matrix[1, 1] + confusion.matrix[2, 2]) / sum(confusion.matrix)
+  
+  #calculate probability of agreement by random chance
+  Pe <- 1 / sum(confusion.matrix) ^ 2 *
+    (sum(confusion.matrix[1,] * sum(confusion.matrix[, 1])) +
+       sum(confusion.matrix[2,] * sum(confusion.matrix[, 2])))
+  
+  #calculate Cohen's Kappa
+  kappa = (Po - Pe) / (1 - Pe)
+  
+  return(kappa)
+}
+```
+
+# Create a table to compare all models
+We calculate the accuracy and the kappa of each model, and we use that to generate a comparison table that shows the accuracy and the kappa for each type of model for each outcome variable. 
+```{r comparison}
+#vector of 4 different outcome variables
+outcome.vars <- c("case.state", "case.US", "death.state", "death.US")
+
+#null vectors for single decision tree models' accuracy and kappa values
+tree.accuracy <- NULL
+tree.kappa <- NULL
+
+#vectors for single decision tree models' accuracy values
+tree.accuracy <- c(
+  accuracy(cm.tree.case.state),
+  accuracy(cm.tree.case.US),
+  accuracy(cm.tree.death.state),
+  accuracy(cm.tree.death.US)
+)
+
+#vectors for single decision tree models' kappa values
+tree.kappa <- c(
+  kappa(cm.tree.case.state),
+  kappa(cm.tree.case.US),
+  kappa(cm.tree.death.state),
+  kappa(cm.tree.death.US)
+)
+
+#null vectors for bagging models' accuracy and kappa values
+bagging.accuracy <- NULL
+bagging.kappa <- NULL
+
+#vectors for bagging models' accuracy values
+bagging.accuracy <- c(
+  accuracy(cm.bagging.case.state),
+  accuracy(cm.bagging.case.US),
+  accuracy(cm.bagging.death.state),
+  accuracy(cm.bagging.death.US)
+)
+
+#vectors for bagging models' kappa values
+bagging.kappa <- c(
+  kappa(cm.bagging.case.state),
+  kappa(cm.bagging.case.US),
+  kappa(cm.bagging.death.state),
+  kappa(cm.bagging.death.US)
+)
+
+#null vectors for boosting models' accuracy and kappa values
+boosting.accuracy <- NULL
+boosting.kappa <- NULL
+
+#vectors for boosting models' accuracy values
+boosting.accuracy <- c(
+  accuracy(cm.boosting.case.state),
+  accuracy(cm.boosting.case.US),
+  accuracy(cm.boosting.death.state),
+  accuracy(cm.boosting.death.US)
+)
+
+#vectors for boosting models' kappa values
+boosting.kappa <- c(
+  kappa(cm.boosting.case.state),
+  kappa(cm.boosting.case.US),
+  kappa(cm.boosting.death.state),
+  kappa(cm.boosting.death.US)
+)
+
+#null vectors for random forest models' accuracy and kappa values
+rf.accuracy <- NULL
+rf.kappa <- NULL
+
+#vectors for random forest models' accuracy values
+rf.accuracy <- c(
+  accuracy(cm.rf.case.state),
+  accuracy(cm.rf.case.US),
+  accuracy(cm.rf.death.state),
+  accuracy(cm.rf.death.US)
+)
+
+#vectors for random forest models' kappa values
+rf.kappa <- c(
+  kappa(cm.rf.case.state),
+  kappa(cm.rf.case.US),
+  kappa(cm.rf.death.state),
+  kappa(cm.rf.death.US)
+)
+
+#generate data frame of accuracy and kappa values of each models for different outcome variables
+comparison <- data.frame(outcome.vars, tree.accuracy, tree.kappa, bagging.accuracy, bagging.kappa, boosting.accuracy, boosting.kappa, rf.accuracy, rf.kappa)
+
+kable(comparison, digits = 3)
+```
+
+Looking at the comparison table above, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus accuracy and kappa of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
+
+# 4. LDA
+```{r}
+library(MASS)
+```
+
+Similar to Logistic Regression, Linear Discriminant Analysis aims to decrease the dimensionality 
+of a dataset.  LDA is useful in predicting categorical variables.  Specifically in the following case, I want to use LDA to answer the following question:
+1. What line best separates STATES with COVID-death rates above the US national average from those with COVID-death rates below the national average?
+
+```{r}
+
+# LDA for STATES greater than NATIONAL
+state.vs.national.death <- na.omit(covid.eviction %>%
+  dplyr::select( -US_covid_cases_rate, -covidDeaths_greater_state, 
+         -US_covid_death_rate, -covidCases_greater_state, 
+         -county_covid_cases_rate, -county_covid_death_rate,
+         -state_covid_cases_rate, -state_covid_death_rate,
+         -covidDeaths, -covidCases, -evictions_greater_state,
+         -evictions_greater_US, -covidCases_greater_US, -GEOID, -year,
+         -`low-flag`, -imputed, -subbed, -stateFIPS, -County, -state_mean_filing_rate,
+          -US_mean_filing_rate))
+
+#let's create training and testing datasets
+index <- sample(nrow(state.vs.national.death),
+                size = nrow(state.vs.national.death),
+                replace = TRUE)
+
+s.v.n.train <- state.vs.national.death[index,]
+s.v.n.test <- state.vs.national.death[-index,]
+
+#Now, let's build an LDA model with the training dataset
+lda1 <- lda(covidDeaths_greater_US ~ .,
+            data = s.v.n.train %>%
+              dplyr::select(-State),
+            family = "binomal")
+
+lda1
+
+#Check the pi_k values
+lda1$prior
+
+#Now, let's predict using the testing dataset
+s.v.n.predictions <- predict(lda1, s.v.n.test)
+s.v.n.predictions <- data.frame(s.v.n.predictions)
+s.v.n.predictions <- s.v.n.predictions %>%
+  mutate(pred_covidDeaths_greater_US = ifelse(posterior.1 > posterior.0,
+                                              1,
+                                              0)) %>%
+    dplyr::select(-posterior.0, -posterior.1, -LD1)
+
+s.v.n.comparison <- data.frame(s.v.n.test$covidDeaths_greater_US,
+                               s.v.n.predictions$pred_covidDeaths_greater_US)
+
+#Let's examine the accuracy of this model
+s.v.n.accuracy <- s.v.n.comparison %>%
+  mutate(acc = s.v.n.predictions.pred_covidDeaths_greater_US == s.v.n.test.covidDeaths_greater_US) 
+
+s.v.n.accuracy %>%
+  summarize(acc.rate = sum(acc)/n())
+
+```
+
+The accuracy of this model is 0.78.
+
+## Comparing accuracies in all Supervised Learning techniques in a table:
+```{r}
+
+```
+
+## Overall analysis of Supervised Learning techniques:
+
+
+# [UNSUPERVISED LEARNING]
+
+#1. PCA
+
+```{r}
+
+colnames <- colnames(covid.eviction)
+
+#Create "Clean" dataset on the COUNTY level (547 obs)
+#This dataset does NOT contain any COVID data
+evict.clean <- na.omit(covid.eviction %>%
+                                dplyr::select(-GEOID, -year, -County, -stateFIPS, -`low-flag`,
+                               -imputed, -subbed, -evictions_greater_state,
+                               -evictions_greater_US, -covidCases_greater_US, 
+                               -covidDeaths_greater_US, -US_mean_filing_rate,
+                                -US_covid_cases_rate, -covidDeaths_greater_state, 
+                               -US_covid_death_rate, -covidCases_greater_state, 
+                               -county_covid_cases_rate, -county_covid_death_rate,
+                               -state_covid_cases_rate, -state_covid_death_rate,
+                               -covidDeaths, -covidCases))
+
+#Collapse on the STATE level, deselect any troublesome variables (with missing values)
+evict.bystate <- evict.clean %>% 
+group_by(evict.clean$State) %>%
+summarise_all(mean) %>%
+  dplyr::select(-State)
+
+evict.bystate2 <- data.frame(evict.bystate, row.names = 1)
+
+```
+
+Principal Component Analysis is a useful tool for unsupervised machine learning. Use of PCA has dwindled in the age of Big Data, during which data collection has become significantly cheaper and more accessible.  However, PCA is still a very useful practice for data visualization, allowing n dimensions of data to be visualized more easily on two dimensions.  
+
+Additionally, use of PCA is limited to quantitative variables.  Thankfully, because our data are on the state/county level and NOT on the individual level, we are able to use all of our variables in the PCA.  
+
+```{r}
+#PCA on a STATE level
+pca.state <- prcomp(evict.bystate2, scale = TRUE)
+
+pca.state
+
+#How much variation is each principal component describing?
+pca.state$sdev^2
+  #PC 1 is describing 7.85 of the variation
+  #PC 2 is describing 4.75 of the variation
+  #PC 3 is describing 2.54 of the variation
+
+#What about percent of variation?
+pca.state$sdev^2/sum(pca.state$sdev^2)
+  #PC 1 accounts for approximately 37.39% of the model's total variation
+  #PC 2 accounts for approximately 17.88% of the model's total variation
+  #PC 3 accounts for approximately 12.11% of the model's total variation
+  #Because we have so many variables in the PCA, some PCs contribute to almost no percentage of the varation
+
+#Because our PCA is primarily composed of PCs 1 and 2, let's plot those onto a biplot
+biplot(pca.state, scale = 0,
+       arrow.len = 0)
+
+#clearly, it's hard to make sense of this biplot, as we are using 27 variables in the PCA
+#Most of the states appear to be quite similar.  However we can see some clear outliers 
+  #DC appears to be leading on both the "evictions" and "eviction filing" index
+
+#its kind of hard to make sense of the biplot with so many variables in the PCA
+#New approach: there are some pretty clear "subsets" of variables within our dataset
+#These are:
+  #Housing & Evictions
+  #Population Statisticas: Race, Ethnicity, Poverty
+
+#Let's create a "Housing & Evictions" subset and a "Population Statistics" subset
+#We can let look at which variables in each of these subsets contributes the most
+#Then, we can build a final PCA model that utilizes the MOST impactful variables
+
+#Let's create the "Housing & Evictions" subset
+#I'm also going to focus on "rates" instead of "counts" 
+#I also drop "State Filing Rate" because its identical to eviction.filing.rate
+#when we collapse on the State-level
+
+housing.sub <- evict.bystate2 %>%
+  dplyr::select(pct.renter.occupied, median.gross.rent,
+         median.property.value, eviction.rate, eviction.filing.rate)
+
+pop.sub <- evict.bystate2 %>%
+  dplyr::select(poverty.rate, median.household.income, pct.white, pct.af.am, pct.hispanic,
+         pct.am.ind, pct.asian, pct.nh.pi, pct.multiple, pct.other, population)
+
+#PCA with HOUSING & EVICTIONS subsets
+pca.housing <- prcomp(housing.sub, scale = TRUE)
+
+#Let's look at the percentage variances of each of our 7 new "Housing" PCs
+pca.housing$sdev^2/sum(pca.housing$sdev^2)
+
+  #PC1 describes for 55.02% of the variance
+  #PC2 describes for 27.41% of the variance
+  #PC3 describes for 9.86% of the variance
+
+#Let's graph a biplot with out 2 primary PCs: PC1 and PC2
+biplot(pca.housing, scale = 0,
+       arrow.len = 0)
+
+#What's interesting about this biplot is we see two clear "clusters of variables:"
+#The dimensionality of the "eviction" variables is nearly perpendicular to the
+#rest of the "housing" variables. This is somewhat surprising to me, as I would 
+#assume that variables such as median property value and median rent would 
+#possibly be correlated with eviction rates.  For robustness, I re-run the "housing" PCA
+#including "median household income," a variable I was including in the "population" subset
+#"median household income" clusters with the rest of of the rent / property values, running
+#perpendicular to the "eviction" dimensions
+
+#Now, I return to my initial Housing PCA output to see which variables drive the main PCs.
+pca.housing
+
+#PC1 is mostly a function of pct.renter.occupied, median.gross.rent, and median.property.value    
+#PC2 is mostly a function of eviction.rate and eviction filing
+
+#General observations:
+#DC and Hawaii are higher on the "housing" access- they have higher meadian property value and
+#higher median gross rent.  They also appear to have higher percentages of renters in the population
+#While Delaware and Maryland have comparable median costs of renting, they have notably higher
+#rates of eviction filing and eviction rates than the other states, with DC and Virginia close behind.  South Carolina is the further on the "eviction" axis
+
+```
+```{r}
+#PCA with POPULATION subsets
+pca.pop <- prcomp(pop.sub, scale = TRUE)
+
+#Let's look at the percentage variances of each of our 7 new "Housing" PCs
+pca.pop$sdev^2/sum(pca.pop$sdev^2)
+
+  #PC1 describes for 33.21% of the variance
+  #PC2 describes for 20.81% of the variance
+  #PC3 describes for 19.98% of the variance
+
+#Let's graph a biplot with out 2 primary PCs: PC1 and PC2
+biplot(pca.pop, scale = 0,
+       arrow.len = 0)
+
+#Unlike our "housing" PCA, we do not have as clearly defined dimensional clusters
+
+#Let's return to the initial Population PCA output to see which variables drive the main PCs.
+pca.pop
+
+#PC1 is mostly a function of pct.asian, pct.multiple and pct.nh.pi, and population
+#PC2 is mostly a function of pct.other, median household income, and poverty rate
+
+#I was surprised to know that % African american was not more important in each PCA.
+#As an experiment, I add % African American into the "housing" subset"
+
+AA.housing.sub <- evict.bystate2 %>%
+  dplyr::select(pct.renter.occupied, median.gross.rent,
+         median.property.value, eviction.rate, eviction.filing.rate, pct.af.am)
+
+pca.AA.housing <- prcomp(AA.housing.sub, scale = TRUE)
+
+biplot(pca.AA.housing, scale = 0, arrow.len = 0)
+
+#Interestingly, pct.AA appears to move in the same direction of eviction rates.
+
+```
+
+Finally, let's run a PCA with 4 of out MOST impactful variables.  Obviously, the definition of "impactful" is subjective. In this case, I want variables that appear to be UNCORRELATED
+
+```{r}
+
+top.sub <- evict.bystate2 %>%
+  dplyr::select(median.gross.rent, eviction.rate, pct.af.am, median.household.income)
+
+pca.top <- prcomp(top.sub, scale. = TRUE)
+
+pca.top$sdev^2/sum(pca.top$sdev^2)
+
+  #PC1 describes for 47.06% of the variance
+  #PC2 describes for 38.15% of the variance
+
+#Let's graph a biplot with out 2 primary PCs: PC1 and PC2
+biplot(pca.top, scale = 0,
+       arrow.len = 0)
+
+pca.top
+
+
+```
+Our top PC is mainly driven by median.gross.rent (0.71) and median.household.income (0.67).  States like NJ, HI, MA, and CT have relatively high household incomes and median gross rents.  Intuitively this makes sense- we expect the cost of renting / living to be higher in places with greater household incomes.  MS, DE, and DC lead in both percentage of African Americans and Eviction rates.  DC does appear to be an outlier, as it is also high on median household income and median gross rent dimensions.
+
+
+
+#2. HIERARCHICAL clustering: 
+## What states are dissimilar from one another, and what are the potential features that cause them to be so?
+## Data Cleaning
+For the purpose of our exploratory project, we remove "evictions" variable, as we consider "evictions filings" more heavily.
+
+```{r}
+covid.eviction2 <- covid.eviction[,-2]
+covid.eviction2.clust <- covid.eviction2[,-c(1, 18:24, 30:43)] #remove unnecessary columns
+
+covid.eviction2.clust <- covid.eviction2.clust %>%
+  group_by(State) %>%
+  summarise_all(mean, na.rm = TRUE)
+```
+
+## Fundamental Calculations
+Most names of the columns stay the same (c.f. covid.eviction2 dataset)
+
+```{r}
+Us.covid.rate <- covid.eviction2 %>%
+  summarize(US_covid_cases_rate = sum(covidCases)/329584132,
+            US_covid_death_rate = sum(covidDeaths)/sum(covidCases))
+
+covid.eviction2.clust <- covid.eviction2.clust %>%
+  mutate(US_covid_cases_rate = Us.covid.rate$US_covid_cases_rate,
+         US_covid_death_rate = Us.covid.rate$US_covid_death_rate)
+
+State.covid.rate <- covid.eviction2.clust %>%
+  group_by(State) %>%
+  summarize(state_covid_cases_rate = covidCases/population,
+            state_covid_death_rate = covidDeaths/covidCases)
+
+covid.eviction2.clust <- full_join(covid.eviction2.clust, State.covid.rate,
+                                  by = "State")
+
+covid.eviction2.clust <- covid.eviction2.clust %>%
+  mutate(covidCases_greater_US = ifelse(state_covid_cases_rate > US_covid_cases_rate,
+                                           1,
+                                           0)) %>%
+  mutate(covidDeaths_greater_US = ifelse(state_covid_death_rate >
+                                          US_covid_death_rate,
+                                         1,
+                                         0))
+```
+
+
+In hierarchical clustering, we use continuous, quantitative variables only. With four graphs below, we reason why we choose complete linkage as our metric of optimization, as hierarchical clustering is observed with the "degree of dissimilarity" amongst the states. We use Euclidean distance as part of the clustering process.
+
+## State Covid CASE Rates: 
+### lower than the US level
+
+```{r}
+c.lower.state <- covid.eviction2.clust %>%
+  filter(covidCases_greater_US == 0)
+
+c.lower.state.subset <- c.lower.state[,-c(18, 22:27)]
+
+c.lower.state.scaled <- scale(c.lower.state.subset %>%
+                              dplyr::select(-State))
+c.lower.state.dist <- dist(c.lower.state.scaled)
+
+c.low.case.hc.single = hclust(c.lower.state.dist, method = "single")
+c.low.case.hc.avg = hclust(c.lower.state.dist, method = "average")
+c.low.case.hc.complete = hclust(c.lower.state.dist, method = "complete")
+
+c.low.case.hc.complete
+
+c.low.case.hc.single %>%
+  as.dendrogram() %>%
+  place_labels(c.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 12) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =12) %>%
+  plot()
+
+c.low.case.hc.avg %>%
+  as.dendrogram() %>%
+  place_labels(c.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =6) %>%
+  plot()
+
+c.low.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(c.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k =6) %>%
+  plot()
+```
+
+Before going further into the usage of different linkage methods, one thing to observe from all three graphs is that there are many states. More specifically, this suggests that there are many states given the condition that the respective rate of covid cases is lower than the mean rate of covid cases across the nation, which may be reassuring.
+
+#### Usage of linkage techniques
+
+Euclidean distance is used as a metric for the distance of dissimilarities. 
+
+[Comparisons of linkage methods]
+In all four cases, we see one commonality that Hawaii is not connected to any other state. More specifically, in the three methods (single, average, and complete), the state acts as an "outlier" and is the most dissimlar to all remaining 50 states. This "outlier" observation may be due to the geographical proximity, as it is an island and thus is possible to not share similar attributes with 50 other states.
+
+The complete method by far is the best solution amongst the three linkages, since the single and average methods are expressed in a more extended form -- that is, multiple states are clustered in one big group before being clustered into other subgroups (e.g. the violet-colored states from OR to VT as shown in single linkage, and the purple-colored states from SC to VA in average linkage). As we try to observe the states in a big picture, having them grouped in smaller subsets allows us to visually analyze more effieciently. Thus, although complete linkage is a more commonly used method, we will use Ward's method. 
+
+[Analysis of the Complete Linkage]
+Similarly to HI, CA and AK are not found to be similar to other states until much later, more specifically, at the height of around 10. Furthermore, it is interesting to observe that states are linked based on their physical proximities (e.g. NM and TX in purple), this does not hold true to all linkages (e.g. FL and NV in green). Let's look further into these two examples. 
+
+
+##### NM & TX
+```{r}
+c.lower.state.subset %>%
+  filter(State == "NM" | State == "TX" | State == "SC" | State == "SD")
+```
+
+We compare NM and TX with SC (in the same color) and SD (grouped into another subset until their subsets merge at the height of around 7). From the data set, we can assume that some of the variables that were considered to match the two states NM and TX might have been as follows: poverty rate, eviction filings, percentage of hispanics, covidDeaths, and covidCases. Of course, because we're loooking at a datset of just four states and do not compare all states from one another, this should be handled merely as a sample that allows us to see what variables *could have* been considered in the dendrogram and scatterplot. If this observation, however, can be generalized into the whole dataset that we used for the this hierarchical clustering, such an analysis allows us to assume that the influence of geographical proximity on clustering. That is, variables like poverty rate and percentage of hispanics may be similar to states that are located closely to each other due to socieconomic factors. 
+
+
+##### FL & NV
+```{r}
+c.lower.state.subset %>%
+  filter(State == "FL" | State == "NV" | State == "AZ" | State == "HI")
+```
+
+We use a similar method to compare between FL and NV, and two other states: AZ is chosen, since it's not connected to FL and NV until the height = around 6; and HI is chosen, since it'd be interesting to look what dissimilar values it has to become an outlier, although this is not the focus of our comparison between FL and NV. 
+
+In comparison, FL and NV seem to share similar percentage of whites, hispanics, and other, which may have factored into their preliminary stage of clustering, although again, this comparison method is not holistic, as we are only comparing amongst four states. 
+
+This comparison of four states, however, is important, as it proves that one should not easily assume that geographical proximity is the primary step to cluster states into subgroups. Specifically speaking, AZ and NV are neighboring states, but variables, including the poverty rate, renter occupied households, population, and covidCases, in NV are *far* smaller than those in AZ. 
+
+```{r}
+c.low.case.clust.df <- c.lower.state.scaled
+rownames(c.low.case.clust.df) <- c.lower.state$State
+c.low.case.clust <- cutree(c.low.case.hc.complete, k = 6)
+fviz_cluster(list(data = c.low.case.clust.df, cluster = c.low.case.clust),
+             labelsize = 8, title = "Cluster plot when k = 6")
+```
+
+Another way to show the same results from the previous dendrogram is with a scatterplot as shown here. We designate k as 6, resulting in 6 different clusters. One difference to note between the dendrogram and the scatterplot is that this plot represents the first stage of the dendrogram, that is, before HI, AK, and CA are merged into subsets. Before that stage, these three states are acting "outliers". HI is the farthest amongst all 51 states (especially the three subgroups), followed by CA and AK. One drawback is that it is difficult to  identify all states regardless of whether they overlap in the graph. 
+
+* Note: The dimensions represent a percentage of variation from the original dataset used. The principal component accounts for 38.5% and the second component accounts for 23.8% of the variation in the dataset. This somewhat low variation suggests lower level of dispersion that, for example, dimension percentage of 70% would. 
+
+----------
+Now that we have extensively explored different linkage methods as well as closer look into certain states, we will look at three other cases more concisely, with complete linkage only. 
+
+### Higher than the US Level (CASE rate) 
+```{r}
+c.higher.state <- covid.eviction2.clust %>%
+  filter(covidCases_greater_US == 1)
+
+c.higher.state.subset <- c.higher.state[,-c(18, 22:27)]
+
+c.higher.state.scaled <- scale(c.higher.state.subset %>%
+                              dplyr::select(-State))
+c.higher.state.dist <- dist(c.higher.state.scaled)
+c.high.case.hc.complete = hclust(c.higher.state.dist)
+
+c.high.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(c.higher.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 4) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k = 4) %>%
+  plot() 
+
+c.high.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(c.higher.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k = 6) %>%
+  plot()
+
+c.high.case.clust.df <- c.higher.state.scaled
+rownames(c.high.case.clust.df) <- c.higher.state$State
+c.high.case.clust <- cutree(c.high.case.hc.complete, k = 6)
+fviz_cluster(list(data = c.high.case.clust.df, cluster = c.high.case.clust),
+             labelsize = 8, title = "'Cluster plot when k = 6")
+
+fviz_cluster(list(data = c.high.case.clust.df, cluster = cutree(c.high.case.hc.complete, k = 4)),
+             labelsize = 8, title = "Cluster plot when k = 4")
+```
+
+With fewer states present given the condition that covid case rates are larger than the US level, a dendrogram is a better visualization than the scatterplot that shows a subset of one or two states for the majority of the sample. Of course, if we change the k from 6 to 4, there will be fewer clusters and make the scatterplot more visually organized that now links MI, IL, PA, and LA into one group that are separated in the graph with k = 6. This observation will be futher discussed in the "K-Means clustering" section. 
+
+When looking at the dendrogram with colors based on k = 4 (changing k here, however, does not change the clustering process, as shown in the second graph), we see that the far RHS shows the New England states, from NJ to MA. However, some of the other New England states are clustered into other groups with non-New England states, e.g. RI with DE, IL and PA. Moreover, DC is the most dissimlar state amongst these 12 states. The observation of DC being an outlier was previously seen in PCA. 
+
+## Covid DEATH Rates
+### lower than the US level
+```{r}
+d.lower.state <- covid.eviction2.clust %>%
+  filter(covidDeaths_greater_US == 0)
+
+d.lower.state.subset <- d.lower.state[,-c(18, 22:27)]
+
+d.lower.state.scaled <- scale(d.lower.state.subset %>%
+                              dplyr::select(-State))
+d.lower.state.dist <- dist (d.lower.state.scaled)
+d.low.case.hc.complete = hclust(d.lower.state.dist)
+
+d.low.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(d.lower.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k = 6) %>%
+  plot()
+
+d.low.case.clust.df <- d.lower.state.scaled
+rownames(d.low.case.clust.df) <- d.lower.state$State
+d.low.case.clust <- cutree(d.low.case.hc.complete, k = 6)
+fviz_cluster(list(data = d.low.case.clust.df, cluster = d.low.case.clust),
+             labelsize = 8, title = "Cluster plot when k = 6")
+
+fviz_cluster(list(data = d.low.case.clust.df, cluster = cutree(d.low.case.hc.complete, k = 12)),
+             labelsize = 8, title = "Cluster plot when k =12")
+```
+
+When k increases from 6 to 12, there are overlaps amongst some clusters. If we keep k = 6, we see that there are no clusters and fewer subsets of a single state, e.g. HI, AK, MD, and DC. This explains the overfitting process for when the value of k is large.
+
+Similarly to when the state covid case rates are lower than the US level, the majority of the US states are found to have death rates lower than the US level. This means that, under collective linkage, there are multiple clusters. However, one difference is that it is not HI that is the greatest outlier, but rather DC. Let's look at possible factors. 
+
+```{r}
+d.lower.state.subset %>%
+  filter(State == "HI" | State == "DC" | State == "AK" | State == "MT" | State == "MD" | State == "CA")
+```
+
+We look at different states, each from a different k group. We see that DC has the highest poverty rate, renter occupied households, percentage of renter occupied, median gross rent, median household income, median property value, percentage of African Americans and other, population, eviction filings, and, most importantly, covid cases and covid deaths. Let's look more deeply. 
+
+```{r}
+cor(d.lower.state.subset %>%
+      dplyr::select(-State))
+```
+
+The correlation coefficient helps us explain how these variables as listed above have such high values in DC compared to in other states. The variables "covidCases" and "covidDeaths" are very highly and positively correlated to renter occupied households, percentage of renter occupied, median gross rent, median household income, eviction filings, percentage of African Americans and median property value, all with correlation coefficients higher than or just about 0.5. This explains that with one of these variables of a large value comes a high level of covid cases and death rates. This ultimately explains why DC is the greater outlier in this dataset. 
+
+### Higher than the US level
+```{r}
+d.higher.state <- covid.eviction2.clust %>%
+  filter(covidDeaths_greater_US == 1)
+
+d.higher.state.subset <- d.higher.state[,-c(18, 22:27)]
+
+d.higher.state.scaled <- scale(d.higher.state.subset %>%
+                              dplyr::select(-State))
+d.higher.state.dist <- dist (d.higher.state.scaled)
+d.high.case.hc.complete = hclust(d.higher.state.dist)
+
+d.high.case.hc.complete %>%
+  as.dendrogram() %>%
+  place_labels(d.higher.state$State) %>%
+  set("labels_cex", 0.5) %>% 
+  color_labels(k = 6) %>%
+  set("branches_lwd", 5) %>%
+  color_branches(k = 6) %>%
+  plot()
+
+d.high.case.clust.df <- d.higher.state.scaled
+rownames(d.high.case.clust.df) <- d.higher.state$State
+d.high.case.clust <- cutree(d.high.case.hc.complete, k = 6)
+fviz_cluster(list(data = d.high.case.clust.df, cluster = d.high.case.clust),
+             labelsize = 8)
+```
+
+Similarly to when the state case rate was higher than the US level, there are several states (to be more specific, one fewer state). At this point, we know that the scatterplot isnt' efficient to visually observe the clusters, unless we want to know the level of variation. Even so, it is not worth it, since the high level of variation of 61.4% used to cluster in the principal component shows great dispersion anyway. 
+
+As can be seen in the dendrogram, on the left-hand side (LHS) of the graph (NJ, MA, CT, NY) are all adjoining states in New England area, while those on the right-hand side (RHS) are either a southern state or midwestern state. The geographical proximity may reflect the distance of (dis)similarities as observed on the y-axis. That is, given the slightly shorter "height" of the y-axis on the LHS than on the RHS, we can state that the former are more similar amongst each other than the latter in general, even though the subsets of {CT, NY} and {MI, MN} have the same height to start off with in the dendrogram.
+
+### Analysis of Hierarchical Clustering
+First and foremost, we have the flexibility to choose what method to use for hierarchical clustering, from single to complete linkage. As we have seen with four different cases, hierarchical clustering allows us to choose not only how many clusters we want to color but also how we would like it to be visualized, with combining the k. What is also efficient about this clustering process is that it helps us observe the "distance of dissimilarity" by looking at the height of the line as represented by the y-axis. 
+
+One disadvantage of hierarchical clustering is that it is difficult to pinpoint the factors that act as threshold of the clustering process. We can only assume the potential variables that may have played into it, such as geographical proximity, but that does not hold true in all cases, as we have observed in the first case. There could be other underlying socioeconomic factors, but with hierarchical clustering, we cannot confirm with full certainty, neither the dendrograms nor the scatterpots with fviz_cluster() function identify them. 
+
+-----------------------------------
+
+#3. K-MEANS clustering
+## How can states be clustered in certain groups? Does higher k value mean better separation amongst the states?
+
+From hierarchical clustering, we see that clustering is done best when k ranges from 4 to 6. Again, we attempted hierarchical clustering before k-means clustering given that it is hard to find the "optimal" k-value. Right off the bat, it is hard to do k-means clustering, since we're using each of the 51 states as a categorical variable. It is not the same as when we observe starbucks data from openintro library or iris dataset where there are groups of states that we start off with. 
+
+Therefore, we will explore the dataset, focusing on the case and death rates in general. That is, instead of looking at each state in a given level (e..g case rate < US level), we will categorize all states by the case rate level, in which it is either higher or lower than the US level.
+
+## Metric of optimization for K-Means clustering
+We designate within-cluster variation of "k" number of clusters as our metric of optimization, as k-means clustering attempts to put data points into clusters -- thus, it is important to analyze and affirm that those data points are grouped according to similar attributes and such that will help make sense in the clustering process. To use within variation as our metric, we use Euclidean distance like we did in hierarchical clustering. 
+
+## Creating Levels (depending on case and death rates):
+```{r}
+km.covid.eviction2.clust <- covid.eviction2.clust[,-c(18, 22:25)]
+km.covid <- km.covid.eviction2.clust %>%
+  mutate(levels = ifelse(covidCases_greater_US == 0 & covidDeaths_greater_US == 0, "low case",
+                         ifelse(covidCases_greater_US == 1 & covidDeaths_greater_US == 0, "high case but low death",
+                                ifelse(covidCases_greater_US == 1 & covidDeaths_greater_US == 1, "high case and deaths",
+                                       ifelse(covidCases_greater_US == 0 & covidDeaths_greater_US == 1, "low case but high death", NA)))))
+
+```
+
+## Determining the "optimal" range of k
+
+```{r}
+# Let's make a graph showing k vs the total within cluster variation
+tot <- NULL
+for(i in 1:20){
+ km <- kmeans(km.covid %>% dplyr::select(-State, -levels),
+              i)
+ tot[i] <- km$tot.withinss/i #averaging by the # of clusters
+}
+plot(tot) #k between 3 and 5 seems reasonable
+```
+
+From the elbow plot above, we see that the optimal k would be either 2 or 3 given that the variation is low to the extent to which it doesn't overfit the data (c.f. when k = 20). These values are lower than what we have seen in hierarchical clustering. Similarly to the effects of high levels of k, such low values of k most likely result in "underfitting" -- that is, it will not clearly divide the data points into groups. 
+
+Let's explore data when k = 2, 4, *and* 6, and see if maybe a value greater than 4 would provide a better clustering than 4 or 2:
+
+```{r}
+km.scaled <- scale(km.covid %>%
+                         dplyr::select(-State, -levels))
+km.scaled_2 <- kmeans(km.scaled, 2)
+km.scaled_4 <- kmeans(km.scaled, 4)
+km.scaled_6 <- kmeans(km.scaled, 6)
+km.scaled_2$centers
+
+km.covid %>%
+  mutate(cluster = km.scaled_4$cluster) %>%
+  ggplot(aes(x = `eviction-filings`,
+             y = `median-household-income`)) +
+  geom_point(aes(color = factor(cluster)),
+             size = 3)
+
+km.covid %>%
+  mutate(cluster = km.scaled_2$cluster) %>%
+  ggplot(aes(x = `pct-white`,
+             y = `median-household-income`)) +
+  geom_point(aes(color = factor(cluster)),
+             size = 3)
+
+km.covid %>%
+  mutate(cluster = km.scaled_4$cluster) %>%
+  ggplot(aes(x = `pct-white`,
+             y = `median-household-income`)) +
+  geom_point(aes(color = factor(cluster)),
+             size = 3)
+
+km.covid %>%
+  mutate(cluster = km.scaled_6$cluster) %>%
+  ggplot(aes(x = `pct-white`,
+             y = `median-household-income`)) +
+  geom_point(aes(color = factor(cluster)),
+             size = 3)
+```
+
+After many attempts of finding a visualization that separates data points into clear groups, we decided to graph a scatterplot of pct-white against median-household-income that seems to be the best visualization so far, compared to the first graph of median-household-income and eviction-filings as an example. 
+
+Right off the bat, looking at the last three graphs focused on pct-white and median-household-income, we can see that there is an overlap when k = 2, as tehre is a red point within the general parameter of the blue points. That overlap still exists when k = 4 and 6. Perhaps, k = 4 seems the optimal value amongst all, since there is only one overlap, while not underfitting or overfitting the data like when k = 2 and k = 6. Overall, however, we can affirm that, regardless of how high or low the k-value is, it is difficult to visually find and show a "perfect" separation of the 51 datapoints. 
+
+```{r}
+# How well did k-means do?
+table(km.scaled_2$cluster, km.covid$levels)
+table(km.scaled_4$cluster, km.covid$levels)
+table(km.scaled_6$cluster, km.covid$levels)
+
+ # use Euclidean distance
+km.scaled_2$tot.withinss # total of Euclidean distances: how compact are my clusters?
+km.scaled_4$tot.withinss
+km.scaled_6$tot.withinss
+```
+
+As we see with total within-variation, the case in which k = 2 has the highest variation, almost as twice as when k = 6 and almost the sum of when k = 4 and k = 6. It is by no surprise that the higher the k-value, the less variation of the dataset. And with that observation, we would initially assume that the higher k-value would lead to more accurate clustering. However, the results from the tables show otherwise. When we look at "low case" (the third column), there are "low case" situations in all four k segments, but there are fewer than there are in k = 6 segments. Not only does this prove our assumption to be false, but it also serves as an example of overfitting. Additionally, this observation shows that it is hard to determine the optimal value of k. 
+
+With this total within-variation analysis as well as the visualized scatterplot with "k" clusters, we can see that even what we would assume to be the "optimal" value of k (which was 6) is not necessarily the "optimal" value after all. Therefore, as much as k-means clustering is one of the most common clustering method, it is not efficiently applicable to this field of research that aims to analyze the interrelatedness of eviction-related socioeconomic factors and covid-related results. 
+
+---- 
+
+# Overall Analysis
+#1. Supervised vs Unsupervised Learning
+Supervised learning is beneficial in analyzing Covid-related data in short term, because it allows us to predict what regions would be expected to have high/low occurrences. This then would help healthcare or government officials to easily target and address issues in those areas.
+
+Meanwhile, in unsupervised learning, we were focused more on how regions (e.g. counties and/or states) differentiate from each other, and what variables play a role in this process. 
+
+The practical use of combining supervised and unsupervised learning allows us to observe the characteristics of a certain area/region that would potentially influence certain levels (high or low) of outbreaks and/or deaths caused by Covid-19. For example, if we were to observe a situation with high correlation between high housing instability and covid cases (or deaths), then policy makers could approach the Covid issue by addressing what could perhaps be its root cause: housing instability and/or eviction. 
+
+#2. Supervised Learning
+
+
+#3. Unsupervised learning
+Firstly, PCA allows to decrease dimensionality of the data, because a single component or variable can account for multiple variables in the data. On the other hand, it can be difficult to visualize high-dimensional data, simlar to K-means clustering, as we are unable to see the individually analyze each variable. However, despite the lack of ability to visually present the data, it can give insight to what drives the dendrogram that we create.
+
+Hierarchical clustering is geared more towards looking at the level of dissimiarility of accuracies and allows us to observe which states are more similar and different from one another. It does somewhat answer to our research question that focuses on potential relevance of socioeconomic factors like eviction rate, poverty rate, and income with covid case and death rates, but is only restricted to our assumption, including the effect of geographical proximity on clustering. Ultimately, we cannot confirm solely from hierarchical clustering. Moreover, we are limited to observing one condition of all four conditions at a time (e.g. covid case rate < US level).
+
+With k-means clustering, not only is it hard to determine the "optimal" k, but it is also time consuming to create a "perfect" graph that shows clear clusters, espeically when k-means visualization shows organized clusters in two dimensions only and there are multiple variables we hope to observe. We observe that each k has its drawbacks, regardless of how high or low it is. More specifically, overlaps exist even when k is as low as 2, so maybe we should take that as given, or we should look for another, better technique than k-means clustering. One thing that k-means clustering has that hierarchical clustering doesn't, however, is that it allows us to look at the dataset more holistically, that is, with all four cases with covid cases and deaths. 
+
+Overall, when it comes to answering our research questions and exploring our main point of relationships between eviction- and demographics- variables and covid-related data, some combination of PCA hierarchical clustering seem to be the best route to explore the data. The main reason behind this is that PCA allows us to analyze what drives the creation of dendrogram that presents distances of dissimilarity amongst states and shows a better visualization that what PCA does. Even though we have looked at samples of some states in this clustering method, our study serves as a sample of a bigger study that could be conducted for further research that looks more deeply into what determines the level of dissimilarities amongst the states besides the potential geographical proximity and other socioeconomic factors behind eviction filings. 
+
+
+
+
+*References*
+* Unsupervised
+https://towardsdatascience.com/understanding-the-bias-variance-tradeoff-165e6942b229
+https://towardsdatascience.com/ensemble-methods-bagging-boosting-and-stacking-c9214a10a205
+https://towardsdatascience.com/why-random-forest-is-my-favorite-machine-learning-model-b97651fa3706
+
+*Supervised
+Ward's method
+https://www.stat.cmu.edu/~cshalizi/350/lectures/08/lecture-08.pdf
+
+fviz_cluster
+https://uc-r.github.io/hc_clustering
+https://stats.stackexchange.com/questions/263374/clusters-and-data-visualisation-in-r
+
