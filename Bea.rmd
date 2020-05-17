@@ -213,9 +213,9 @@ Our top PC is mainly driven by median.gross.rent (0.71) and median.household.inc
 
 ## LDA (supervised)
 Similar to Logistic Regression, Linear Discriminant Analysis aims to decrease the dimensionality 
-of a dataset.  Specifically, our goal in LDA is to find a line that can "cut" our data in the way that maximizes its variance.  In this case, I want to determine:
+of a dataset.  LDA is useful in predicting categorical variables.  Specifically in the following case, I want to use LDA to answer the following question:
 1. What line best separates STATES with COVID-death rates above the US national average from those with COVID-death rates below the national average?
-2. What line best separates COUNTIES with COVID-death rates above their STATE'S average from those with COVID-death rates below their state's average?
+
 ```{r}
 
 # LDA for STATES greater than NATIONAL
@@ -229,7 +229,7 @@ state.vs.national.death <- na.omit(covid.eviction %>%
          -`low-flag`, -imputed, -subbed, -stateFIPS, -County, -state_mean_filing_rate,
           -US_mean_filing_rate))
 
-#let's create training and testing datasets (This is olivia's code)
+#let's create training and testing datasets
 index <- sample(nrow(state.vs.national.death),
                 size = nrow(state.vs.national.death),
                 replace = TRUE)
@@ -237,6 +237,7 @@ index <- sample(nrow(state.vs.national.death),
 s.v.n.train <- state.vs.national.death[index,]
 s.v.n.test <- state.vs.national.death[-index,]
 
+#Now, let's build an LDA model with the training dataset
 lda1 <- lda(covidDeaths_greater_US ~ .,
             data = s.v.n.train %>%
               dplyr::select(-State),
@@ -259,7 +260,6 @@ s.v.n.predictions <- s.v.n.predictions %>%
 s.v.n.comparison <- data.frame(s.v.n.test$covidDeaths_greater_US,
                                s.v.n.predictions$pred_covidDeaths_greater_US)
 
-
 #Let's examine the accuracy of this model
 s.v.n.accuracy <- s.v.n.comparison %>%
   mutate(acc = s.v.n.predictions.pred_covidDeaths_greater_US == s.v.n.test.covidDeaths_greater_US) 
@@ -269,5 +269,5 @@ s.v.n.accuracy %>%
 
 ```
 
-
+The accuracy of this model is 0.78.
 
