@@ -1,0 +1,170 @@
+---
+title: "Chica's Test Markdown"
+author: "Chica"
+date: "5/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(class)
+library(dplyr)
+library(caret)
+library(ipred)
+```
+
+Read data:
+```{r}
+covid.eviction <- read_csv('covid_eviction2.csv')
+```
+
+## Simple LM
+```{r}
+lm1 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`,
+          data = covid.eviction)
+summary(lm1)
+```
+Adjusted R-squared is low, meaning while the eviction filing rate is significant, its variations account fo ronly 2% of the variation in COVID cases.
+
+## Long LM
+```{r}
+lm12 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`*`pct-af-am` + `pct-hispanic` +  `pct-asian`,
+          data = covid.eviction)
+summary(lm12)
+```
+adj r-sq Increases significantly, all variables highly significant.
+Shows that as pct-af-am increases, eviction filing rate matters less.
+Magnitude of coefficients:
+1) pct-asian
+2) eviction-filing-rate
+3) pct-af-am
+4) pct-hispanic
+5) eviction-filing-rate:pct-af-am
+
+## KNN
+For my KNN function, I am using accuracy as my metric for optimization. Because there is a tradeoff between increasing values of K and reducing the number of classes, and a tradeoff between reducing values of K and response to variation in the data, I make this decision by plotting accuracies of our KNN function at various K's (1-10) and choose the smallest K at which marginal increase in accuracy seems to taper off.
+```{r}
+# create function to normalize axis to improve distance calculations
+normalize.function <- function(x){
+  (x - min(x))/(max(x) - min(x))
+}
+
+# extracting columns of interest based on lm models, in this case eviction filing rates and percentage of residents who are african american
+covid.eviction2 <- covid.eviction[, c(11, 21, 41)] %>%
+  na.omit()
+
+# applying normalization function to variables of interest
+ce2 <- covid.eviction2
+ce2$pct.af.am <- normalize.function(ce2$`pct-af-am`)
+ce2$eviction.filing.rate <- normalize.function(ce2$`eviction-filing-rate`)
+
+# run loop through ks 1-20 and graph to find optimal K (where additional k has significant marginal effect on accuracy)
+store <- NULL
+accuracy <- NULL
+
+for(k in 1:10){
+  
+  for(i in 1:nrow(ce2)){
+    
+    train <- ce2[-i,]
+    test <- ce2[i,]
+    
+    prediction <- knn(train = train %>%
+                        select(pct.af.am, eviction.filing.rate),
+                      test = test %>%
+                        select(pct.af.am, eviction.filing.rate),
+                      train$covidCases_greater_state,
+                      k)
+      
+    store[i] <- ifelse(prediction == ce2$covidCases_greater_state[i],
+                       1, 
+                       0)
+    
+  }
+  
+  accuracy[k] <- mean(store)
+  
+    }
+
+k <- (1:10)
+
+find.k <- data.frame(k, accuracy)
+
+find.k %>%
+  ggplot(aes(x = k, y = accuracy)) +
+  geom_point() +
+  geom_line()
+```
+
+We'll go with k = 7.
+```{r}
+# create a grid of normalized values within the range of our training data for visualization:
+eviction.norm.seq <- seq(from = 0, to = 1, by = .01)
+afam.norm.seq <- seq(from = 0, to = 1, by = .01)
+norm.grid <- expand.grid(eviction.norm.seq, afam.norm.seq)
+colnames(norm.grid)[c(1,2)] <- c('eviction.filing.rate', 'pct.af.am') 
+
+knn.grid <- norm.grid %>%
+  mutate(prediction = knn(train = ce2 %>%
+                            select(pct.af.am, eviction.filing.rate),
+                          test = norm.grid,
+                          ce2$covidCases_greater_state,
+                          7))
+
+knn.grid %>%
+  ggplot(aes(x = eviction.filing.rate,
+             y = pct.af.am)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.1) +
+  geom_point(data = ce2,
+             mapping = aes(x = eviction.filing.rate,
+                           y = pct.af.am,
+                           color = factor(covidCases_greater_state)),
+             size = 3) +
+  xlab('County Eviction Filing Rate') +
+  ylab('County Percent African American Residents') +
+  ggtitle('How well does our KNN model predict county COVID cases?') +
+  scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
+```
+Looking at this plot, we can see that there are a lot of blue predicitons ocurring between 0.50 and 1.00 eviction filing rates where there aren't any original data. That suggests that our model would falsely predict a lot of 'Less than state avg' in places where we have no original data to confirm that to be true. This may be driven by an outlier in eviction filing rates near 1.00 (normalized). This suggests that a KNN model is less helpful in making predictions on values that it isn't trained on. Applied to our real world example, if testing is largely done in counties with low eviction rates or eviction rates really are skewed so drastically, KNN may not be a great predictor for COVID case rates in underrepresented areas.
+
+How good is this KNN model?
+# Confusion Matrix for KNN
+```{r}
+# subsetting original data to train & test
+ran <- sample(1:nrow(ce2), 0.9 * nrow(ce2))
+
+train <- ce2[ran, c(4,5)]
+test <- ce2[-ran, c(4,5)]
+train.cl <- ce2[ran, 3]
+test.cl <- ce2[-ran, 3]
+
+# making sure dependent variable is read as factor
+train.cl$covidCases_greater_state <- as.factor(train.cl$covidCases_greater_state)
+test.cl$covidCases_greater_state <- as.factor(test.cl$covidCases_greater_state)
+
+# creating column of predictions
+knn.predict <- test %>%
+  mutate(prediction = knn(train = train,
+                          test = test,
+                          train.cl$covidCases_greater_state,
+                          4))
+
+# confusion matrix
+confusionMatrix(knn.predict$prediction, test.cl$covidCases_greater_state)
+```
+This confusion matrix gives us several ways to measure how good our model is.
+
+# Accuracy:
+
+
+# Precision:
+
+
+# Cohen's Kappa:
+Kappa compares observed accuracy and compares it to the accuracy we would expect if classification was random. Our Kappa of 0.0765. Since Kappas range from -1 tp 1 in value, our Kappa represents only slight agreement between 
+

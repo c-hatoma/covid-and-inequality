@@ -440,8 +440,350 @@ Magnitude of coefficients:
 2) eviction-filing-rate
 3) pct-af-am
 4) pct-hispanic
-5) `eviction-filing-rate`:`pct-af-am`
+5) eviction-filing-rate:pct-af-am
 
 
 
 # KNN
+```{r}
+library(class)
+eviction.seq <- seq(from = 0, to = 109.16, by = 10)
+cases.seq <- seq(from = 0, to = .0625, by = .005)
+asian.seq <- seq(from = 0, to = 41.64, by = 4)
+afam.seq <- seq(from = 0, to = 85.95, by = 7)
+hispanic.seq <- seq(from = 0, to = 98.71, by = 9)
+
+grid1 <- expand.grid(eviction.seq, cases.seq)
+grid2 <- expand.grid(eviction.seq, cases.seq, asian.seq, afam.seq, hispanic.seq)
+grid3 <- expand.grid(eviction.seq, afam.seq)
+
+knn1 <- knn(na.omit(covid.eviction[, c(11, 21, 37)]), grid3, cl = covid.eviction$county_covid_cases_rate, k = 1)
+
+knn1.k10 <- grid3 %>%
+  group_by(Var1, Var2) %>%
+  mutate(prediction = knn(Var1, Var2, 3))
+
+knn1.k10 %>%
+  ggplot(aes(x = Var1,
+             y = Var2)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.3) +
+  geom_point(data = covid.eviction,
+             mapping = aes(x = `eviction-filing-rate`,
+                           y = county_covid_cases_rate),
+             size = 3)
+```
+
+This grid situation isn't working. trying to use a random subset of original data as test:
+```{r}
+
+normalize.function <- function(x){
+  (x - min(x))/(max(x) - min(x))
+}
+
+covid.eviction2 <- covid.eviction[, c(11, 21, 41)] %>%
+  na.omit()
+ran <- sample(1:nrow(covid.eviction2), 0.9 * nrow(covid.eviction2))
+ce <- data.frame(covid.eviction2[, c(1, 2)])
+ce <- ce %>%
+  na.omit()
+ce.norm <- data.frame(lapply(ce[, c(1:2)], normalize.function))
+
+summary(ce.norm)
+
+ce.train <- ce.norm[ran, ]
+ce.test <- ce.norm[-ran, ]
+
+train.cl <- covid.eviction2[ran, 3]
+test.cl <- covid.eviction2[-ran, 3]
+
+str(train.cl$covidCases_greater_state)
+train.cl$covidCases_greater_state <- as.factor(train.cl$covidCases_greater_state)
+unique(train.cl$covidCases_greater_state)
+train.cl <- train.cl %>%
+  na.omit() %>%
+  as.data.frame()
+
+length(ce.train$pct.af.am)
+length(ce.train$eviction.filing.rate)
+length(train.cl$covidCases_greater_state)
+
+library(dplyr)
+
+knn1 <- knn(train = ce.train, test = ce.test, cl = train.cl$covidCases_greater_state, k = 3)
+
+store <- NULL
+accuracy <- NULL
+
+for(k in 1:20){
+  
+  for(i in 1:nrow(covid.eviction2)){
+    
+    train <- covid.eviction2[-i,]
+    test <- covid.eviction2[i,]
+    
+    prediction <- knn(train = train %>%
+                        select(`pct-af-am`, `eviction-filing-rate`),
+                      test = test %>%
+                        select(`pct-af-am`, `eviction-filing-rate`),
+                      train$covidCases_greater_state,
+                      k)
+      
+    store[i] <- ifelse(prediction == covid.eviction2$covidCases_greater_state[i],
+                       1, 
+                       0)
+    
+  }
+  
+  accuracy[k] <- mean(store)
+  
+    }
+
+k <- (1:20)
+
+find.k <- data.frame(k, accuracy)
+```
+Now that I've found accuracies, will try to graph it using best k:
+
+```{r}
+find.k %>%
+  ggplot(aes(x = k, y = accuracy)) +
+  geom_point() +
+  geom_line()
+
+# we'll go with k = 5
+
+eviction.seq <- seq(from = 0, to = 109.16, by = 1)
+afam.seq <- seq(from = 0, to = 85.95, by = 1)
+
+grid <- expand.grid(eviction.seq, afam.seq)
+
+knn.grid <- grid %>%
+  mutate(prediction = knn(train = covid.eviction2 %>%
+                            select(`pct-af-am`, `eviction-filing-rate`),
+                          test = grid,
+                          covid.eviction2$covidCases_greater_state,
+                          5))
+
+knn.grid %>%
+  ggplot(aes(x = Var1,
+             y = Var2)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.1) +
+  geom_point(data = covid.eviction2,
+             mapping = aes(x = `eviction-filing-rate`,
+                           y = `pct-af-am`,
+                           color = factor(covidCases_greater_state)),
+             size = 3) +
+  xlab('County Eviction Filing Rate') +
+  ylab('County Percent African American Residents') +
+  ggtitle('How well does our KNN model predict county COVID outcomes?') +
+  scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
+```
+
+Repeat but normalized this time:
+```{r}
+normalize.function <- function(x){
+  (x - min(x))/(max(x) - min(x))
+}
+
+covid.eviction2 <- covid.eviction[, c(11, 21, 41)] %>%
+  na.omit()
+ran <- sample(1:nrow(covid.eviction2), 0.9 * nrow(covid.eviction2))
+ce <- data.frame(covid.eviction2[, c(1, 2)])
+ce <- ce %>%
+  na.omit()
+ce.norm <- data.frame(lapply(ce[, c(1:2)], normalize.function))
+
+ce2 <- covid.eviction2
+ce2$pct.af.am <- normalize.function(ce2$`pct-af-am`)
+ce2$eviction.filing.rate <- normalize.function(ce2$`eviction-filing-rate`)
+
+summary(ce2)
+
+store <- NULL
+accuracy <- NULL
+
+for(k in 1:20){
+  
+  for(i in 1:nrow(ce2)){
+    
+    train <- ce2[-i,]
+    test <- ce2[i,]
+    
+    prediction <- knn(train = train %>%
+                        select(pct.af.am, eviction.filing.rate),
+                      test = test %>%
+                        select(pct.af.am, eviction.filing.rate),
+                      train$covidCases_greater_state,
+                      k)
+      
+    store[i] <- ifelse(prediction == ce2$covidCases_greater_state[i],
+                       1, 
+                       0)
+    
+  }
+  
+  accuracy[k] <- mean(store)
+  
+    }
+
+k <- (1:20)
+
+find.k <- data.frame(k, accuracy)
+
+find.k %>%
+  ggplot(aes(x = k, y = accuracy)) +
+  geom_point() +
+  geom_line()
+
+#we'll go with k = 7
+
+# normalized grid:
+
+eviction.norm.seq <- seq(from = 0, to = 1, by = .01)
+afam.norm.seq <- seq(from = 0, to = 1, by = .01)
+
+norm.grid <- expand.grid(eviction.norm.seq, afam.norm.seq)
+
+colnames(norm.grid)[c(1,2)] <- c('eviction.filing.rate', 'pct.af.am') 
+
+knn.grid <- norm.grid %>%
+  mutate(prediction = knn(train = ce2 %>%
+                            select(pct.af.am, eviction.filing.rate),
+                          test = norm.grid,
+                          ce2$covidCases_greater_state,
+                          7))
+
+knn.grid %>%
+  ggplot(aes(x = eviction.filing.rate,
+             y = pct.af.am)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.1) +
+  geom_point(data = ce2,
+             mapping = aes(x = eviction.filing.rate,
+                           y = pct.af.am,
+                           color = factor(covidCases_greater_state)),
+             size = 3) +
+  xlab('County Eviction Filing Rate') +
+  ylab('County Percent African American Residents') +
+  ggtitle('How well does our KNN model predict county COVID outcomes?') +
+  scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
+```
+
+Repeat for deaths:
+```{r}
+covid.eviction3 <- covid.eviction[, c(11, 21, 44)] %>%
+  na.omit()
+ran <- sample(1:nrow(covid.eviction3), 0.9 * nrow(covid.eviction3))
+ce <- data.frame(covid.eviction3[, c(1, 2)])
+ce <- ce %>%
+  na.omit()
+ce.norm <- data.frame(lapply(ce[, c(1:2)], normalize.function))
+
+ce3 <- covid.eviction3
+ce3$pct.af.am <- normalize.function(ce3$`pct-af-am`)
+ce3$eviction.filing.rate <- normalize.function(ce3$`eviction-filing-rate`)
+ce3$covidDeaths_greater_state <- as.factor(ce3$covidDeaths_greater_state)
+
+summary(ce3)
+
+store <- NULL
+accuracy <- NULL
+
+for(k in 1:20){
+  
+  for(i in 1:nrow(ce3)){
+    
+    train <- ce3[-i,]
+    test <- ce3[i,]
+    
+    prediction <- knn(train = train %>%
+                        select(pct.af.am, eviction.filing.rate),
+                      test = test %>%
+                        select(pct.af.am, eviction.filing.rate),
+                      train$covidDeaths_greater_state,
+                      k)
+      
+    store[i] <- ifelse(prediction == ce3$covidDeaths_greater_state[i],
+                       1, 
+                       0)
+    
+  }
+  
+  accuracy[k] <- mean(store)
+  
+    }
+
+k <- (1:20)
+
+find.k <- data.frame(k, accuracy)
+
+find.k %>%
+  ggplot(aes(x = k, y = accuracy)) +
+  geom_point() +
+  geom_line()
+
+#we'll go with k = 4
+
+# normalized grid:
+
+# eviction.norm.seq <- seq(from = 0, to = 1, by = .01)
+# afam.norm.seq <- seq(from = 0, to = 1, by = .01)
+
+# norm.grid <- expand.grid(eviction.norm.seq, afam.norm.seq)
+# 
+# colnames(norm.grid)[c(1,2)] <- c('eviction.filing.rate', 'pct.af.am') 
+
+knn.grid <- norm.grid %>%
+  mutate(prediction = knn(train = ce3 %>%
+                            select(pct.af.am, eviction.filing.rate),
+                          test = norm.grid,
+                          ce3$covidDeaths_greater_state,
+                          4))
+
+knn.grid %>%
+  ggplot(aes(x = eviction.filing.rate,
+             y = pct.af.am)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.1) +
+  geom_point(data = ce3,
+             mapping = aes(x = eviction.filing.rate,
+                           y = pct.af.am,
+                           color = factor(covidDeaths_greater_state)),
+             size = 3) +
+  xlab('County Eviction Filing Rate') +
+  ylab('County Percent African American Residents') +
+  ggtitle('How well does our KNN model predict county COVID Deaths?') +
+  scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
+```
+
+```{r}
+library(caret)
+library(ipred)
+
+ran <- sample(1:nrow(covid.eviction3), 0.9 * nrow(covid.eviction3))
+
+train3 <- covid.eviction3[ran, c(1,2)]
+test3 <- covid.eviction3[-ran, c(1,2)]
+train.cl <- covid.eviction3[ran, 3]
+test.cl <- covid.eviction3[-ran, 3]
+
+test.cl$covidDeaths_greater_state <- as.factor(test.cl$covidDeaths_greater_state)
+
+train3.test <- test3 %>%
+  mutate(prediction = knn(train = train3,
+                          test = test3,
+                          train.cl$covidDeaths_greater_state,
+                          4))
+
+str(knn.grid$prediction)
+str(test.cl$covidDeaths_greater_state)
+
+confusionMatrix(train3.test$prediction, test.cl$covidDeaths_greater_state)
+```
+
