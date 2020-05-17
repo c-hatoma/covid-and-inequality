@@ -1,16 +1,37 @@
 ---
 title: "FinalProject"
-author: "Chica"
+author: "Bea, Chica, Jennifer, & Olivia"
 date: "5/5/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(class)
+library(dplyr)
+library(caret)
+library(ipred)
+library(rvest)
+library(data.table)
+library(tidytext)
+library(stringr)
+library(ggrepel)
+library(dendextend)
+library(factoextra)
+library(rpart)
+library(rattle)
+library(fastAdaboost)
+library(randomForest)
+library(knitr)
+```
+
+
+```{r}
+
 ```
 
 
 
-```{r cars}
-
-```
