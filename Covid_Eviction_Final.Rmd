@@ -446,7 +446,7 @@ kappas <- c(kappa.k5, kappa.k7, kappa.k10)
 kappas <- unlist(kappas, use.names = FALSE)
   
 KNN.matrix <- data.frame(K = c(5, 7, 10), 
-  Accuracy = c(as.vector(accuracy.k5), as.vector(accuracy.k7), as.vector(accuracy.k10)),
+  Accuracy = c(as.numeric(accuracy.k5), as.numeric(accuracy.k7), as.numeric(accuracy.k10)),
   Precision = c(precision.k5, precision.k7, precision.k10),
   Recall = c(recall.k5, recall.k7, recall.k10),
   F_measure = c(f.k5, f.k7, f.k10),
