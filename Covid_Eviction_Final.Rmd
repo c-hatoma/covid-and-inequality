@@ -97,7 +97,7 @@ sumstats <- stat.desc(covid.eviction %>%
                     dplyr::select(`poverty-rate`, `renter-occupied-households`, `pct-renter-occupied`, `median-gross-rent`, `median-household-income`, `median-property-value`, `rent-burden`, `pct-white`, `pct-af-am`, `pct-hispanic`, `pct-am-ind`, `pct-asian`, `pct-multiple`, `eviction-filing-rate`, county_covid_cases_rate, county_covid_death_rate))
 kable(as.data.frame(sumstats[c(4, 8, 9, 5, 13), ]))
 ```
----
+
 Looking at the summary statistics, we see that covid case rates range from 0 to 6.25% of county populations. Eviction filing rates range from 0 to 109.16 (total eviction filings/number of renter-occupied households). Our lm doesn't estimate COVID rates above around 1%, meaning our model would never predict a covid case rate above around 1%, when in reality we see much higher rates occurring. This further suggests that there are limitations to using a simple linear model to predict on our data.
 
 How can we improve this linear model? If we still care about eviction rates, we can look at what other variables may be able to explain additional variation in COVID cases and if our eviction rate variable remains significant. Adding control variables and interaction terms can add more depth to our understanding of the relationships in our data.
@@ -111,7 +111,7 @@ corr <- as.data.frame(corr)
 print(kable(corr), type = "latex", comment = FALSE)
 ```
 
----
+
 The variables most highly correlated with county-level covid cases & deaths are pct white, median gross rent, pct renter occupied, and pct asian. While eviction filing rates don't seem to be very highly correlated with covid case rates, we can still include it in our lm model.
 
 ## Long LM Model Using High Correlation Variables
@@ -454,7 +454,7 @@ KNN.matrix <- data.frame(K = c(5, 7, 10),
 kable(KNN.matrix)
 ```
 
----
+
 ### Accuracy:
 It appears that accuracy is the same for both k = 7 and 10 and a bit higher for k = 5. This makes intuitive sense because with a smaller k, you're looking at 'closer' neighbors which are more likely to be similar to each other, and thus better predictors of each other's outcomes.
 
@@ -1191,7 +1191,6 @@ comparison <- data.frame(outcome.vars, tree.accuracy, bagging.accuracy, boosting
 kable(comparison, digits = 3)
 ```
 
----
 Looking at the comparison table above, boosting and random forest models generally have the highest accuracy. Boosting models have similarly high accuracy rates, but slightly higher kappa values than random forests. Across most measures, bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus most measures of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
 
 # 4. Linear Discriminant Analysis (LDA)
@@ -1346,7 +1345,7 @@ LDA = c(LDA.vector)
 )
 kable(comparison.supervised, digits = 3)
 ```
----
+
 ## Overall analysis of Supervised Learning techniques:
 The table above compares the 5 measures (accuracy, precision, recall, f stats, and kappa) across all supervised learning techniques that we used to predict whether COVID-19 cases are greater than the state average in a given county using its eviction filing rate and other demographic variables. It seems like random forest and LDA models are the most effective when it comes to predicting the outcome, with high values across all 5 measures.
 
