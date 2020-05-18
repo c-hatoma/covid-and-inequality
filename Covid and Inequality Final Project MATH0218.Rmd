@@ -1308,6 +1308,8 @@ First, I apply LDA to predict whether a state will have a COVID death-rate great
 
 # County death Rate > State
 ```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
 # LDA for COUNTY death RATE greater than STATE
 cVs.case <- na.omit(covid.eviction %>%
   dplyr::select( -US_covid_cases_rate, -covidDeaths_greater_state, 
@@ -1364,7 +1366,7 @@ LDA.case.confusion <- table(yhat,testy)
 confusionMatrix(LDA.case.confusion, mode = "everything")
 ```
 
-#Accuracy and Confusion Matrix
+# Accuracy and Confusion Matrix
 Our LDA model predicting whether State COVID cases rates are higher or lower than their state's average has an accuracy of approximately 76.21%.  In comparison to the other other supervised learning algorithms explored in this project, this accuracy is about average.  To get a better understanding how the distribution of correct and incorrect predictions, I generated a 2x2 confusion matrix of predicted values.  
 
 Of the total 822 counties in the testing sameple with COVID case rates lower than their state's average, 641 were correctly predicted by the LDA.  Predictions for counties with COVID case rates higher than their state's average were notably less accurate- only 54 of a total 90 counties were correctly classified.  This suggests that counties with higher case rates may not necessarily behave similarly to high-case counties within or outside their home state.
@@ -1373,6 +1375,8 @@ While LDA may not perform well in separating differences in county-level death r
 
 ### County Death Rate > State
 ```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
 cVs.death <- na.omit(covid.eviction %>%
   dplyr::select( -US_covid_cases_rate, -covidCases_greater_state, 
          -US_covid_death_rate, -covidCases_greater_US, 
@@ -1497,7 +1501,9 @@ Principal Component Analysis is a useful tool for unsupervised machine learning.
 
 While other unsupervised learning techniques such as heirchical or knn clustering lend themselves more naturally to visualizing relationships between datapoints, they do little to explain what variables drive that relatedness.  This is where PCA is particularly useful in unsupervised machine learning.  By projecting n variables on a two-dimensional axis, we are able to examine which variables may be most important in differentiating classes from one another.
 
-In order for this analysis to be completely unsupervised, I do not examine any COVID data in my PCA.  Instead, I use PCA to examine baseline differences between States, prior to the COVID pandemic.  
+In order for this analysis to be completely unsupervised, I do not examine any COVID data in my PCA.  Instead, I use PCA to examine baseline differences between States, prior to the COVID pandemic.
+
+# Main PCA - All Variables
 ```{r}
 
 #Create "Clean" dataset on the COUNTY level (547 obs)
@@ -1564,7 +1570,7 @@ Our first PCA is a function of all 27 variables from the housing and evictions d
 In order to create a slightly more interpretable graphic, I create two variable subsets of data : "Housing & Evictions" and "Population Statistics: Race, Ethnicity, Poverty".  By performing PCA of these two subsets, I will be able to gain more insight on which variables in these subcategories create the most variance, and thus are most impactful.  
 
 
-### Subsetted PCAs: Housing & Eviction and Population Statistics
+## Subsetted PCAs: Housing & Eviction and Population Statistics
 
 ```{r}
 
@@ -1643,7 +1649,7 @@ The biplot of PC1 and PC2 shows Hawaii (HI) to be a clear outlier, with its larg
 
 Notably, I was surprised to know that percent African American was not more important in each PC, as I know that social science literature traditionally is closely related to a variety of life outcome variables.  To see whether the negligible effect of percent African American is due to its inclusion in the "Population Statistics" PCA, I add it to the "Housing" PCA and examine the results.  Interestingly, Percent African American does appear correlated with eviction rates and evictions filing rates.  However, principal components for which Percent African American plays a large role contribute minimal variance to the overall model.
 
-### Relating unsupervised PCA to trends in COVID-19 outbreak severity
+## Relating unsupervised PCA to trends in COVID-19 outbreak severity
 How well does unsupervised PCA allow to examine baseline differences between states?  How does this inform our understanding of the underlying conditions of states most severly impacted by COVID?  Let's examine which states have been most impacted by COVID to date.  None of these seven states appeared as outliers on our state-level PCA biplots.  However, this may not be the fault of PCA.  In order to generate a readable graphic, I chose to aggregate data a state-level.  If we were to conduct a county-levelPCA for a single state, we may see a stronger relationship betwee housing/ demographic variable and their relationship to county-level impacts of COVID. 
 
 ```{r}
