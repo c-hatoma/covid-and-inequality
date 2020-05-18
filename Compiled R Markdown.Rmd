@@ -1507,8 +1507,12 @@ LDA = c(LDA.vector)
 kable(comparison.supervised, digits = 3)
 ```
 
+<<<<<<< HEAD
 ## Overall analysis of Supervised Learning techniques:
 The table above compares the 5 measures (accuracy, precision, recall, f stats, and kappa) across all supervised learning techniques that we used to predict whether COVID-19 cases are greater than the state average in a given county using its eviction filing rate and other demographic variables. It seems like random forest and LDA models are the most effective when it comes to predicting the outcome, with high values across all 5 measures.
+=======
+### Overall analysis of Supervised Learning techniques:
+>>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
 
 
 # [UNSUPERVISED LEARNING]
@@ -1688,7 +1692,7 @@ covid.eviction2.clust <- covid.eviction2.clust %>%
   summarise_all(mean, na.rm = TRUE)
 ```
 
-## Fundamental Calculations
+### Fundamental Calculations
 Most names of the columns stay the same (c.f. covid.eviction2 dataset)
 
 ```{r}
@@ -1721,7 +1725,7 @@ covid.eviction2.clust <- covid.eviction2.clust %>%
 
 In hierarchical clustering, we use continuous, quantitative variables only. With four graphs below, we reason why we choose complete linkage as our metric of optimization, as hierarchical clustering is observed with the "degree of dissimilarity" amongst the states. We use Euclidean distance as part of the clustering process.
 
-## State Covid CASE Rates: 
+### State Covid CASE Rates: 
 ### lower than the US level
 
 ```{r}
@@ -1863,7 +1867,7 @@ With fewer states present given the condition that covid case rates are larger t
 
 When looking at the dendrogram with colors based on k = 4 (changing k here, however, does not change the clustering process, as shown in the second graph), we see that the far RHS shows the New England states, from NJ to MA. However, some of the other New England states are clustered into other groups with non-New England states, e.g. RI with DE, IL and PA. Moreover, DC is the most dissimlar state amongst these 12 states. The observation of DC being an outlier was previously seen in PCA. 
 
-## Covid DEATH Rates
+### Covid DEATH Rates
 ### lower than the US level
 ```{r}
 d.lower.state <- covid.eviction2.clust %>%
@@ -1952,17 +1956,17 @@ One disadvantage of hierarchical clustering is that it is difficult to pinpoint 
 
 -----------------------------------
 
-#3. K-MEANS clustering
-## How can states be clustered in certain groups? Does higher k value mean better separation amongst the states?
+# 3. K-MEANS clustering
+### How can states be clustered in certain groups? Does higher k value mean better separation amongst the states?
 
 From hierarchical clustering, we see that clustering is done best when k ranges from 4 to 6. Again, we attempted hierarchical clustering before k-means clustering given that it is hard to find the "optimal" k-value. Right off the bat, it is hard to do k-means clustering, since we're using each of the 51 states as a categorical variable. It is not the same as when we observe starbucks data from openintro library or iris dataset where there are groups of states that we start off with. 
 
 Therefore, we will explore the dataset, focusing on the case and death rates in general. That is, instead of looking at each state in a given level (e..g case rate < US level), we will categorize all states by the case rate level, in which it is either higher or lower than the US level.
 
-## Metric of optimization for K-Means clustering
+### Metric of optimization for K-Means clustering
 We designate within-cluster variation of "k" number of clusters as our metric of optimization, as k-means clustering attempts to put data points into clusters -- thus, it is important to analyze and affirm that those data points are grouped according to similar attributes and such that will help make sense in the clustering process. To use within variation as our metric, we use Euclidean distance like we did in hierarchical clustering. 
 
-## Creating Levels (depending on case and death rates):
+### Creating Levels (depending on case and death rates):
 ```{r}
 km.covid.eviction2.clust <- covid.eviction2.clust[,-c(18, 22:25)]
 km.covid <- km.covid.eviction2.clust %>%
@@ -1973,7 +1977,7 @@ km.covid <- km.covid.eviction2.clust %>%
 
 ```
 
-## Determining the "optimal" range of k
+### Determining the "optimal" range of k
 
 ```{r}
 # Let's make a graph showing k vs the total within cluster variation
@@ -2050,17 +2054,22 @@ With this total within-variation analysis as well as the visualized scatterplot 
 ---- 
 
 # Overall Analysis
-#1. Supervised vs Unsupervised Learning
+## 1. Supervised vs Unsupervised Learning
 Supervised learning is beneficial in analyzing Covid-related data in short term, because it allows us to predict what regions would be expected to have high/low occurrences. This then would help healthcare or government officials to easily target and address issues in those areas.
 
 Meanwhile, in unsupervised learning, we were focused more on how regions (e.g. counties and/or states) differentiate from each other, and what variables play a role in this process. 
 
 The practical use of combining supervised and unsupervised learning allows us to observe the characteristics of a certain area/region that would potentially influence certain levels (high or low) of outbreaks and/or deaths caused by Covid-19. For example, if we were to observe a situation with high correlation between high housing instability and covid cases (or deaths), then policy makers could approach the Covid issue by addressing what could perhaps be its root cause: housing instability and/or eviction. 
 
+<<<<<<< HEAD
 #2. Supervised Learning
 As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
+=======
+## 2. Supervised Learning
 
-#3. Unsupervised learning
+>>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
+
+## 3. Unsupervised learning
 Firstly, PCA allows to decrease dimensionality of the data, because a single component or variable can account for multiple variables in the data. On the other hand, it can be difficult to visualize high-dimensional data, simlar to K-means clustering, as we are unable to see the individually analyze each variable. However, despite the lack of ability to visually present the data, it can give insight to what drives the dendrogram that we create.
 
 Hierarchical clustering is geared more towards looking at the level of dissimiarility of accuracies and allows us to observe which states are more similar and different from one another. It does somewhat answer to our research question that focuses on potential relevance of socioeconomic factors like eviction rate, poverty rate, and income with covid case and death rates, but is only restricted to our assumption, including the effect of geographical proximity on clustering. Ultimately, we cannot confirm solely from hierarchical clustering. Moreover, we are limited to observing one condition of all four conditions at a time (e.g. covid case rate < US level).
@@ -2072,13 +2081,13 @@ Overall, when it comes to answering our research questions and exploring our mai
 
 
 
-*References*
-* Unsupervised
+### References
+Unsupervised:
 https://towardsdatascience.com/understanding-the-bias-variance-tradeoff-165e6942b229
 https://towardsdatascience.com/ensemble-methods-bagging-boosting-and-stacking-c9214a10a205
 https://towardsdatascience.com/why-random-forest-is-my-favorite-machine-learning-model-b97651fa3706
 
-*Supervised
+Supervised:
 Ward's method
 https://www.stat.cmu.edu/~cshalizi/350/lectures/08/lecture-08.pdf
 
