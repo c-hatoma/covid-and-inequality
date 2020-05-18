@@ -8,7 +8,7 @@ output: html_document
 # Introduction
 Our group aims to look at US county-level data on eviction and demographics (e.g. eviction filings, poverty rate, and racial distributions), as well as their relevance with Covid-19 statistics like death and case rates. Using supervised and unsupervised learning, we explore the data that we obtained from USAFacts (https://usafacts.org/visualizations/coronavirus-covid-19-spread-map), Eviction Lab (https://evictionlab.org/), and US Census as of 4/30/2020 (https://www.census.gov/popclock/).
 
-Given the wide range of learning techniques we explore in our project, each model address a different question. 
+Given the wide range of learning techniques we explore in our project, each model will approach this topic in a slightly different way. 
 
 # Table of Contents
 Supervised Learning:
@@ -1184,65 +1184,140 @@ kable(comparison, digits = 3)
 
 Looking at the comparison table above, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus accuracy and kappa of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
 
-# 4. LDA
-Similar to Logistic Regression, Linear Discriminant Analysis aims to decrease the dimensionality 
-of a dataset.  LDA is useful in predicting categorical variables.  Specifically in the following case, I want to use LDA to answer the following question:
-1. What line best separates STATES with COVID-death rates above the US national average from those with COVID-death rates below the national average?
+# 4. Linear Discriminant Analysis (LDA)
+Question: How can we use Linear Discriminant Analysis to best separate state's with COVID death rates and death rates greater than the national average using demographic and eviction data?
 
+Understanding the underlying characteristics of the states most severely impacted by COVID can inform early public health and policy intervention.  Using LDA, we will be able to predict whether a state will have a COVID death or death rate greater than the national average.  Like Decision Tree Algorithms, LDA is suitable for predicting categorical outcome. It is particularly useful for deaths in which a clear or extreme separatation between categories exists.  Additionally, LDA is often compared in the literature to supervised Principal Component Analysis (PCA)- as both rely on linear transformations to reduce data dimensionality.  
+
+First, I apply LDA to predict whether a state will have a COVID death-rate greater than the national average.  I begin my splitting a subsetted dataset into training and testing.  I train my model with the "training" dataset, and then predict with the "testing" dataset.
+
+# County death Rate > State
 ```{r}
-
-# LDA for STATES greater than NATIONAL
-state.vs.national.death <- na.omit(covid.eviction %>%
+# LDA for COUNTY death RATE greater than STATE
+cVs.case <- na.omit(covid.eviction %>%
   dplyr::select( -US_covid_cases_rate, -covidDeaths_greater_state, 
-         -US_covid_death_rate, -covidCases_greater_state, 
+         -US_covid_death_rate, -covidCases_greater_US, 
          -county_covid_cases_rate, -county_covid_death_rate,
          -state_covid_cases_rate, -state_covid_death_rate,
          -covidDeaths, -covidCases, -evictions_greater_state,
-         -evictions_greater_US, -covidCases_greater_US, -GEOID, -year,
+         -evictions_greater_US, -covidDeaths_greater_US, -GEOID, -year,
          -`low-flag`, -imputed, -subbed, -stateFIPS, -County, -state_mean_filing_rate,
           -US_mean_filing_rate))
 
 #let's create training and testing datasets
-index <- sample(nrow(state.vs.national.death),
-                size = nrow(state.vs.national.death),
+index <- sample(nrow(cVs.case),
+                size = nrow(cVs.case),
                 replace = TRUE)
 
-s.v.n.train <- state.vs.national.death[index,]
-s.v.n.test <- state.vs.national.death[-index,]
+cVs.case.train <- cVs.case[index,]
+cVs.case.test <- cVs.case[-index,]
 
 #Now, let's build an LDA model with the training dataset
-lda1 <- lda(covidDeaths_greater_US ~ .,
-            data = s.v.n.train %>%
+lda.case <- lda(covidCases_greater_state ~ .,
+            data = cVs.case.train  %>%
               dplyr::select(-State),
             family = "binomal")
 
-lda1
+lda.case
 
 #Check the pi_k values
-lda1$prior
+lda.case$prior
 
 #Now, let's predict using the testing dataset
-s.v.n.predictions <- predict(lda1, s.v.n.test)
-s.v.n.predictions <- data.frame(s.v.n.predictions)
-s.v.n.predictions <- s.v.n.predictions %>%
-  mutate(pred_covidDeaths_greater_US = ifelse(posterior.1 > posterior.0,
-                                              1,
-                                              0)) %>%
-    dplyr::select(-posterior.0, -posterior.1, -LD1)
+cVs.case.predictions <- predict(lda.case, cVs.case.test)
+cVs.case.predictions  <- data.frame(cVs.case.predictions )
+cVs.case.predictions  <- cVs.case.predictions  %>%
+  dplyr::select(-posterior.0, -posterior.1, -LD1)
 
-s.v.n.comparison <- data.frame(s.v.n.test$covidDeaths_greater_US,
-                               s.v.n.predictions$pred_covidDeaths_greater_US)
+cVs.case.comparison <- data.frame(cVs.case.test$covidCases_greater_state,
+                               cVs.case.predictions$class)
 
 #Let's examine the accuracy of this model
-s.v.n.accuracy <- s.v.n.comparison %>%
-  mutate(acc = s.v.n.predictions.pred_covidDeaths_greater_US == s.v.n.test.covidDeaths_greater_US) 
+cVs.case.accuracy <- cVs.case.comparison %>%
+  mutate(acc = cVs.case.test.covidCases_greater_state == cVs.case.predictions.class) 
 
-s.v.n.accuracy %>%
+LDA.case.accuracy <- cVs.case.accuracy %>%
   summarize(acc.rate = sum(acc)/n())
+
+LDA.case.accuracy
+
+#Build a confusion Matrix to view distribution of case predictions
+testy <- cVs.case.accuracy[,1]
+yhat <- cVs.case.accuracy[,2]
+
+LDA.case.confusion <- table(yhat,testy)
+confusionMatrix(LDA.case.confusion, mode = "everything")
+```
+
+#Accuracy and Confusion Matrix
+Our LDA model predicting whether State COVID cases rates are higher or lower than their state's average has an accuracy of approximately 76.21%.  In comparison to the other other supervised learning algorithms explored in this project, this accuracy is about average.  To get a better understanding how the distribution of correct and incorrect predictions, I generated a 2x2 confusion matrix of predicted values.  
+
+Of the total 822 counties in the testing sameple with COVID case rates lower than their state's average, 641 were correctly predicted by the LDA.  Predictions for counties with COVID case rates higher than their state's average were notably less accurate- only 54 of a total 90 counties were correctly classified.  This suggests that counties with higher case rates may not necessarily behave similarly to high-case counties within or outside their home state.  
+
+While LDA may not perform well in separating differences in county-level death rates, perhaps it will be more accurate at predicting whether a county's COVID death-rate is higher than its state average.  
+
+# County Death Rate > State
+```{r}
+cVs.death <- na.omit(covid.eviction %>%
+  dplyr::select( -US_covid_cases_rate, -covidCases_greater_state, 
+         -US_covid_death_rate, -covidCases_greater_US, 
+         -county_covid_cases_rate, -county_covid_death_rate,
+         -state_covid_cases_rate, -state_covid_death_rate,
+         -covidDeaths, -covidCases, -evictions_greater_state,
+         -evictions_greater_US, -covidDeaths_greater_US, -GEOID, -year,
+         -`low-flag`, -imputed, -subbed, -stateFIPS, -County, -state_mean_filing_rate,
+          -US_mean_filing_rate))
+
+#let's create training and testing datasets
+index <- sample(nrow(cVs.death),
+                size = nrow(cVs.death),
+                replace = TRUE)
+
+cVs.death.train <- cVs.death[index,]
+cVs.death.test <- cVs.death[-index,]
+
+#Now, let's build an LDA model with the training dataset
+lda.death <- lda(covidDeaths_greater_state ~ .,
+            data = cVs.death.train  %>%
+              dplyr::select(-State),
+            family = "binomal")
+
+lda.death
+
+#Check the pi_k values
+lda.death$prior
+
+#Now, let's predict using the testing dataset
+cVs.death.predictions <- predict(lda.death, cVs.death.test)
+cVs.death.predictions  <- data.frame(cVs.death.predictions )
+cVs.death.predictions  <- cVs.death.predictions  %>%
+  dplyr::select(-posterior.0, -posterior.1, -LD1)
+
+cVs.death.comparison <- data.frame(cVs.death.test$covidDeaths_greater_state,
+                               cVs.death.predictions$class)
+
+#Let's examine the accuracy of this model
+cVs.death.accuracy <- cVs.death.comparison %>%
+  mutate(acc = cVs.death.test.covidDeaths_greater_state == cVs.death.predictions.class) 
+
+LDA.death.accuracy <- cVs.death.accuracy %>%
+  summarize(acc.rate = sum(acc)/n())
+
+LDA.death.accuracy
+
+#Build a confusion Matrix to view distribution of death predictions
+testy <- cVs.death.accuracy[,1]
+yhat <- cVs.death.accuracy[,2]
+
+LDA.death.confusion <- table(yhat,testy)
+confusionMatrix(LDA.death.confusion, mode = "everything")
 
 ```
 
-The accuracy of this model is 0.78.
+#Accuracy and Confusion Matrix
+Our LDA model predicting whether State COVID deaths rates are higher or lower than their state's average has an approximate accuracy of 54.27%.  This is lower that the accuracy of our COVID case model, as well as most of the other supervised learning algorithms previously utlized in this project.  Again, I generate a 2x2 confusion matrix to explore the distribution correct and incorrect predicted models.
+
+Of the total 176 counties in the testing sameple with COVID death rates lower than their state's average, 100 were correctly predicted by the LDA.  As occured in the COVID case LDA model, predictions for counties with COVID death rates higher than their state's average were largely innaccurate - 15 of a total 23 counties were correctly classified.  Once again, this suggests that counties highly-effected by COVID, both in case and death rate, do not strictly believe similarly.  Without a clear separation between counties with higher or lower than state average death rates, LDA is likely not the most effective modeling technique to answer this question.
 
 ## Comparing accuracies in all Supervised Learning techniques in a table:
 ```{r}
@@ -1255,10 +1330,12 @@ The accuracy of this model is 0.78.
 # [UNSUPERVISED LEARNING]
 
 #1. PCA
+Principal Component Analysis is a useful tool for unsupervised machine learning. Like Linear Discriminant Analysis, PCA relies on linear transformations to summarize relationship between different variables.  By creating a "principal component" that is a weighted linear tranformation of n variables, PCA is able to decrease the dimensionality of a dataset.
 
+While other unsupervised learning techniques such as heirchical or knn clustering lend themselves more naturally to visualizing relationships between datapoints, they do little to explain what variables drive that relatedness.  This is where PCA is particularly useful in unsupervised machine learning.  By projecting n variables on a two-dimensional axis, we are able to examine which variables may be most important in differentiating classes from one another.
+
+In order for this analysis to be completely unsupervised, I do not examine any COVID data in my PCA.  Instead, I use PCA to examine baseline differences between States, prior to the COVID pandemic.  
 ```{r}
-
-colnames <- colnames(covid.eviction)
 
 #Create "Clean" dataset on the COUNTY level (547 obs)
 #This dataset does NOT contain any COVID data
@@ -1273,7 +1350,19 @@ evict.clean <- na.omit(covid.eviction %>%
                                -state_covid_cases_rate, -state_covid_death_rate,
                                -covidDeaths, -covidCases))
 
-#Collapse on the STATE level, deselect any troublesome variables (with missing values)
+#This dataset DOES contain COVID data (we'll return to it later)
+evict.COVID.clean <- na.omit(covid.eviction %>%
+                                dplyr::select(-GEOID, -year, -County, -stateFIPS, -`low-flag`,
+                               -imputed, -subbed, 
+                               -evictions_greater_US, 
+                                -US_mean_filing_rate,
+                                -US_covid_cases_rate,  
+                               -US_covid_death_rate,  
+                               -county_covid_cases_rate, -county_covid_death_rate,
+                               -state_covid_cases_rate, -state_covid_death_rate,
+                               -covidDeaths, -covidCases))
+
+#Collapse EVICT dataset on the STATE level
 evict.bystate <- evict.clean %>% 
 group_by(evict.clean$State) %>%
 summarise_all(mean) %>%
@@ -1281,13 +1370,14 @@ summarise_all(mean) %>%
 
 evict.bystate2 <- data.frame(evict.bystate, row.names = 1)
 
-```
+#Collapse EVICT COVID dataset on the STATE level
+evict.covid.bystate <- evict.COVID.clean %>% 
+group_by(evict.COVID.clean$State) %>%
+summarise_all(mean)
 
-Principal Component Analysis is a useful tool for unsupervised machine learning. Use of PCA has dwindled in the age of Big Data, during which data collection has become significantly cheaper and more accessible.  However, PCA is still a very useful practice for data visualization, allowing n dimensions of data to be visualized more easily on two dimensions.  
+#evict.covid.bystate2 <- data.frame(evict.covid.bystate, row.names = 1)
 
-Additionally, use of PCA is limited to quantitative variables.  Thankfully, because our data are on the state/county level and NOT on the individual level, we are able to use all of our variables in the PCA.  
 
-```{r}
 #PCA on a STATE level
 pca.state <- prcomp(evict.bystate2, scale = TRUE)
 
@@ -1295,34 +1385,25 @@ pca.state
 
 #How much variation is each principal component describing?
 pca.state$sdev^2
-  #PC 1 is describing 7.85 of the variation
-  #PC 2 is describing 4.75 of the variation
-  #PC 3 is describing 2.54 of the variation
+
 
 #What about percent of variation?
 pca.state$sdev^2/sum(pca.state$sdev^2)
-  #PC 1 accounts for approximately 37.39% of the model's total variation
-  #PC 2 accounts for approximately 17.88% of the model's total variation
-  #PC 3 accounts for approximately 12.11% of the model's total variation
-  #Because we have so many variables in the PCA, some PCs contribute to almost no percentage of the varation
 
 #Because our PCA is primarily composed of PCs 1 and 2, let's plot those onto a biplot
 biplot(pca.state, scale = 0,
        arrow.len = 0)
 
-#clearly, it's hard to make sense of this biplot, as we are using 27 variables in the PCA
-#Most of the states appear to be quite similar.  However we can see some clear outliers 
-  #DC appears to be leading on both the "evictions" and "eviction filing" index
+```
+#Variation: Main PCA
+Our first PCA is a function of all 27 variables from the housing and evictions dataset.  The first principal component, PC1, has a variance of 7.85, or approximately 37.39% of the model's total variation.  The second princial component, PC2, has a variance of 4.75, and accounts for approximately 12.11% of the model's total variation. Because n = 27, some principal components contribute almost no variance to the model.  Next I graph a biplot of PC1 and PC2. Clearly, projecting 27 dimensions into 2 does not make for a quality graphic!  From what we are able to parse from this plot, most states appear to behave quite similarly. However we can see some clear outliers. DC appears to be leading on both the "evictions" and "eviction filing" index, closely followed by Maryland (MD). However, DC also is quite high on the "median household income" dimension, as well as the "rent burden" dimension.  This may be due to the fact that while DC is only a city, it is treated equivalently to all other states in this analysis.  Other states with major cities, such as New York (NYC) or Illinois (Chicago), also have rural and suburban areas that are included in state averages, DC is almost entirely urban.
 
-#its kind of hard to make sense of the biplot with so many variables in the PCA
-#New approach: there are some pretty clear "subsets" of variables within our dataset
-#These are:
-  #Housing & Evictions
-  #Population Statisticas: Race, Ethnicity, Poverty
+In order to create a slightly more interpretable graphic, I create two variable subsets of data : "Housing & Evictions" and "Population Statistics: Race, Ethnicity, Poverty".  By performing PCA of these two subsets, I will be able to gain more insight on which variables in these subcategories create the most variance, and thus are most impactful.  
 
-#Let's create a "Housing & Evictions" subset and a "Population Statistics" subset
-#We can let look at which variables in each of these subsets contributes the most
-#Then, we can build a final PCA model that utilizes the MOST impactful variables
+
+#Subsetted PCAs: Housing & Eviction and Population Statistics
+
+```{r}
 
 #Let's create the "Housing & Evictions" subset
 #I'm also going to focus on "rates" instead of "counts" 
@@ -1333,56 +1414,43 @@ housing.sub <- evict.bystate2 %>%
   dplyr::select(pct.renter.occupied, median.gross.rent,
          median.property.value, eviction.rate, eviction.filing.rate)
 
-pop.sub <- evict.bystate2 %>%
-  dplyr::select(poverty.rate, median.household.income, pct.white, pct.af.am, pct.hispanic,
-         pct.am.ind, pct.asian, pct.nh.pi, pct.multiple, pct.other, population)
-
 #PCA with HOUSING & EVICTIONS subsets
 pca.housing <- prcomp(housing.sub, scale = TRUE)
 
 #Let's look at the percentage variances of each of our 7 new "Housing" PCs
 pca.housing$sdev^2/sum(pca.housing$sdev^2)
 
-  #PC1 describes for 55.02% of the variance
-  #PC2 describes for 27.41% of the variance
-  #PC3 describes for 9.86% of the variance
-
 #Let's graph a biplot with out 2 primary PCs: PC1 and PC2
 biplot(pca.housing, scale = 0,
        arrow.len = 0)
 
-#What's interesting about this biplot is we see two clear "clusters of variables:"
-#The dimensionality of the "eviction" variables is nearly perpendicular to the
-#rest of the "housing" variables. This is somewhat surprising to me, as I would 
-#assume that variables such as median property value and median rent would 
-#possibly be correlated with eviction rates.  For robustness, I re-run the "housing" PCA
-#including "median household income," a variable I was including in the "population" subset
-#"median household income" clusters with the rest of of the rent / property values, running
-#perpendicular to the "eviction" dimensions
-
-#Now, I return to my initial Housing PCA output to see which variables drive the main PCs.
+#Return to PCA output to see which variables drive the main PCs.
 pca.housing
 
-#PC1 is mostly a function of pct.renter.occupied, median.gross.rent, and median.property.value    
-#PC2 is mostly a function of eviction.rate and eviction filing
-
-#General observations:
-#DC and Hawaii are higher on the "housing" access- they have higher meadian property value and
-#higher median gross rent.  They also appear to have higher percentages of renters in the population
-#While Delaware and Maryland have comparable median costs of renting, they have notably higher
-#rates of eviction filing and eviction rates than the other states, with DC and Virginia close behind.  South Carolina is the further on the "eviction" axis
-
 ```
+#Variation & Analysis: Housing and Evictions PCA
+After running PCA on the housing and evictions subset, I examine the two most impactful principal components.  PC1 accounts for 55.02% of the model's variance, and is mostly a function of "percent renter occupied" "median gross rent," and "median property value."  PC2 describes 27.41% of the model's variance, and is mainly a funtion of "eviction rate" and "eviction filing."  I then graph a biplot of PC1 and PC2.  
+
+From this biplot, we can seetwo clear clusters of variables.  The dimensionality of "eviction" variables(eviction rate and eviction filing) is nearly perpendicular to the rest of the "housing" variables (percent renter occupied, mean gross rent, etc). This is somewhat surprising to me, as I would have assumed that variables such as median property value and median rent would possibly be correlated with eviction rates.  For robustness, I re-run the "housing" PCA to include "median household income," a variable otherwise included in the "population statistics" subset.  "Median household income" clusters with the rest of of the rent / property value dimensions, running perpendicular to the "eviction" varaibles.
+
+While this plot is still somewhat difficult to read, we again see DC as an outlier.  Both DC and Hawaii (HI) are higher on the "housing" access- they both have higher meadian property value and higher median gross rent.  They also appear to have higher percentages of renters.  
+
+Delaware and Maryland have comparable median costs of renting.  However, they have notably higher rates of eviction filing and eviction rates, with DC and Virginia close behind.  South Carolina is the furthest on the "eviction" axis. 
+
+Next, I conduct PCA with the "population statistics" subset
+
 ```{r}
 #PCA with POPULATION subsets
+
+pop.sub <- evict.bystate2 %>%
+  dplyr::select(poverty.rate, median.household.income, pct.white, pct.af.am, pct.hispanic,
+         pct.am.ind, pct.asian, pct.nh.pi, pct.multiple, pct.other, population)
+
 pca.pop <- prcomp(pop.sub, scale = TRUE)
 
-#Let's look at the percentage variances of each of our 7 new "Housing" PCs
+#Let's look at the percentage variances 
 pca.pop$sdev^2/sum(pca.pop$sdev^2)
 
-  #PC1 describes for 33.21% of the variance
-  #PC2 describes for 20.81% of the variance
-  #PC3 describes for 19.98% of the variance
 
 #Let's graph a biplot with out 2 primary PCs: PC1 and PC2
 biplot(pca.pop, scale = 0,
@@ -1392,12 +1460,6 @@ biplot(pca.pop, scale = 0,
 
 #Let's return to the initial Population PCA output to see which variables drive the main PCs.
 pca.pop
-
-#PC1 is mostly a function of pct.asian, pct.multiple and pct.nh.pi, and population
-#PC2 is mostly a function of pct.other, median household income, and poverty rate
-
-#I was surprised to know that % African american was not more important in each PCA.
-#As an experiment, I add % African American into the "housing" subset"
 
 AA.housing.sub <- evict.bystate2 %>%
   dplyr::select(pct.renter.occupied, median.gross.rent,
@@ -1410,31 +1472,22 @@ biplot(pca.AA.housing, scale = 0, arrow.len = 0)
 #Interestingly, pct.AA appears to move in the same direction of eviction rates.
 
 ```
+#Variation & Analysis: Population Statistics PCA
+In the "Population Statitics" PCA, 
+PC1 accounts for 33.21%  of the model's variance, and is mostly a function of mostly a function of precent asian, percent multi-racial, percent pacific islander, and population size.  PC2 describes 20.81% of the model's variance, and is mainly a funtion of percent "other" race, median household income, and poverty rate.  
 
-Finally, let's run a PCA with 4 of out MOST impactful variables.  Obviously, the definition of "impactful" is subjective. In this case, I want variables that appear to be UNCORRELATED
+The biplot of PC1 and PC2 shows Hawaii (HI) to be a clear outlier, with its large Asian, Pacific Islander, and Mixed Race Population.  Both DC and California (CA) appear to also be more racially diverse, while relatively low on the "poverty" dimension, which is lead by Mississippi (MS) and Arizona (AZ).
+
+Notably, I was surprised to know that percent African American was not more important in each PC, as I know that social science literature traditionally is closely related to a variety of life outcome variables.  To see whether the negligible effect of percent African American is due to its inclusion in the "Population Statistics" PCA, I add it to the "Housing" PCA and examine the results.  Interestingly, Percent African American does appear correlated with eviction rates and evictions filing rates.  However, principal components for which Percent African American plays a large role contribute minimal variance to the overall model.
+
+#Relating unsupervised PCA to trends in COVID-19 outbreak severity
+How well does unsupervised PCA allow to examine baseline differences between states?  How does this inform our understanding of the underlying conditions of states most severly impacted by COVID?  Let's examine which states have been most impacted by COVID to date.  None of these seven states appeared as outliers on our state-level PCA biplots.  However, this may not be the fault of PCA.  In order to generate a readable graphic, I chose to aggregate data a state-level.  If we were to conduct a county-levelPCA for a single state, we may see a stronger relationship betwee housing/ demographic variable and their relationship to county-level impacts of COVID. 
 
 ```{r}
-
-top.sub <- evict.bystate2 %>%
-  dplyr::select(median.gross.rent, eviction.rate, pct.af.am, median.household.income)
-
-pca.top <- prcomp(top.sub, scale. = TRUE)
-
-pca.top$sdev^2/sum(pca.top$sdev^2)
-
-  #PC1 describes for 47.06% of the variance
-  #PC2 describes for 38.15% of the variance
-
-#Let's graph a biplot with out 2 primary PCs: PC1 and PC2
-biplot(pca.top, scale = 0,
-       arrow.len = 0)
-
-pca.top
-
+evict.covid.bystate %>%
+  filter(covidCases_greater_US >= 0.5 | covidDeaths_greater_US >= 0.5)
 
 ```
-Our top PC is mainly driven by median.gross.rent (0.71) and median.household.income (0.67).  States like NJ, HI, MA, and CT have relatively high household incomes and median gross rents.  Intuitively this makes sense- we expect the cost of renting / living to be higher in places with greater household incomes.  MS, DE, and DC lead in both percentage of African Americans and Eviction rates.  DC does appear to be an outlier, as it is also high on median household income and median gross rent dimensions.
-
 
 
 #2. HIERARCHICAL clustering: 
