@@ -49,43 +49,221 @@ library(fastAdaboost)
 library(randomForest)
 library(knitr)
 library(ISLR)
+library(xtable)
+library(MASS)
+library(pastecs)
 ```
 
 # [SUPERVISED LEARNING]
 ### Load Data
 Loading appended data with COVID-19 and eviction data.
 ```{r data}
-
-#read the csv data file
 covid.eviction <- read_csv("covid_eviction2.csv")
 ```
 
-# 1. LM
-## Simple LM
+# 1. LM Models
+# Simple LM
+Question: Do eviction filing rates have an effect on COVID case rates at the county level?
+
+A simple lm model uses only our independent variable of interest, eviction filing rates, on the right hand side.
 ```{r}
 lm1 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`,
           data = covid.eviction)
 summary(lm1)
 ```
-Adjusted R-squared is low, meaning while the eviction filing rate is significant, its variations account for only 2% of the variation in COVID cases.
+The lm output gives us the R-squared and adjusted R-squared values which reperesent how well our model explains variations in our output/prediction.
 
-## Long LM
+## Adjusted R-squared:
+The adjusted R-squared value here is low, meaning while the eviction filing rate is significant, its variations account for only 2% of the variation in COVID cases. To better optimize our lm model, we can consider how other variables may impact our coefficient on eviction or if they better explain COVID cases than eviction.
+
+## F-statistic:
+The F-test, which tells us whether our R-squared value is significantly different from 0, is significant, which leads us to conclude that our model overall is significant.
+
+## Magnitude of Coefficients
+Another way to assess the efficacy of our linear model is by looking at the magnitude of our coefficients. While significant at below the 0.1% level, it's difficult to know what the coefficient of 9.185e-05 actually means.
+
+A graph and summary statistics can help us visualize what this slope actually means:
 ```{r}
-lm12 <- lm(county_covid_cases_rate ~ `eviction-filing-rate`*`pct-af-am` + `pct-hispanic` +  `pct-asian`,
-          data = covid.eviction)
-summary(lm12)
+covid.eviction %>%
+  ggplot(aes(x = `eviction-filing-rate`, 
+             y = county_covid_cases_rate)) +
+  geom_point() +
+  geom_abline(slope = 9.185e-05, intercept = 1.121e-03, col = 'blue')
 ```
-adj r-sq Increases significantly, all variables highly significant.
-Shows that as pct-af-am increases, eviction filing rate matters less.
-Magnitude of coefficients:
-1) pct-asian
-2) eviction-filing-rate
-3) pct-af-am
-4) pct-hispanic
-5) eviction-filing-rate:pct-af-am
+Even though our coefficient ws significant, by looking at the fitted line plotted against the actual values from in our data tells us that our points are really clustered at the lower covid and eviction case rates, with just a couple outliers that are really skewing our fitted model. From a visual perspective, this lm does not fit the data well, so I wouldn't trust this model to make predictions about COVID cases based on eviction filing rates. Perhaps this means that a non-linear model would work best, but we can also try adding in additional control and interaction terms to see if the model changes.
+
+```{r}
+sumstats <- stat.desc(covid.eviction %>%
+                    dplyr::select(`poverty-rate`, `renter-occupied-households`, `pct-renter-occupied`, `median-gross-rent`, `median-household-income`, `median-property-value`, `rent-burden`, `pct-white`, `pct-af-am`, `pct-hispanic`, `pct-am-ind`, `pct-asian`, `pct-multiple`, `eviction-filing-rate`, county_covid_cases_rate, county_covid_death_rate))
+sumstats[c(4, 8, 9, 5, 13), ]
+```
+Looking at the summary statistics, we see that covid case rates range from 0 to 6.25% of county populations. Eviction filing rates range from 0 to 109.16 (total eviction filings/number of renter-occupued households). Our lm doesn't estimate COVID rates above around 1%, meaning our model would never predict a covid case rate above around 1%, when in reality we see much higher rates ocurring. This further suggests that there are limitations to using a simple linear model to predict on our data.
+
+How can we improve this linear model? If we still care about eviction rates, we can look at what other varibles may be able to explain additional variation in COVID cases and if our eviction rate variable remains significant. Adding control variables and interaction terms can add more depth to our understanding of the relationships in our data.
+
+## Let's look at the correlation between our variables:
+```{r, results = 'asis'}
+corr <- round(cor(covid.eviction %>%
+                    dplyr::select(`poverty-rate`, `renter-occupied-households`, `pct-renter-occupied`, `median-gross-rent`, `median-household-income`, `median-property-value`, `rent-burden`, `pct-white`, `pct-af-am`, `pct-hispanic`, `pct-am-ind`, `pct-asian`, `pct-multiple`, `eviction-filing-rate`, county_covid_cases_rate, county_covid_death_rate), use = 'complete.obs'), 2)
+
+corr[upper.tri(corr)] <- ""
+corr <- as.data.frame(corr)
+print(kable(corr), type = "latex", comment = FALSE)
+```
+The variables most highly correlated with county-level covid cases & deaths are pct white, median gross rent, pct renter occupied, and pct asian. While eviction filing rates don't seem to be very highly correlated with covid case rates, we can still include it in our lm model.
+
+# Long LM Model Using High Correlation Variables
+```{r}
+lm2 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-white` + `pct-asian` +  `pct-renter-occupied` + `median-gross-rent`,
+          data = covid.eviction)
+summary(lm2)
+```
+## Adjusted R-squared:
+As we can see in our output, basing our independent variables off of correlations alone helped some but didn't drastically increase Adjusted R-squared and gave us a couple of insignificant variables. We could just add and remove variables until we felt the R-squared was optimal, but that would take a lot of time so we can use the stepwise function to do that for us. 
+
+An additional strength of the stepwise function is that it optimizes models based on AIC rather than relying on R-squared and F-stats alone. 
+
+# Stepwise Long LM with Interaction Terms
+```{r}
+covid.eviction.naomit <- na.omit(covid.eviction %>%
+                                   dplyr::select(`poverty-rate`, `renter-occupied-households`, `pct-renter-occupied`, `median-gross-rent`, `median-household-income`, `median-property-value`, `rent-burden`, `pct-white`, `pct-af-am`, `pct-hispanic`, `pct-am-ind`, `pct-asian`, `pct-multiple`, `eviction-filing-rate`, county_covid_cases_rate))
+  
+full.lm <- lm(county_covid_cases_rate ~.,
+              data = covid.eviction.naomit)
+
+step.lm <- stepAIC(full.lm, 
+                   scope = . ~ .^2,
+                   direction = "both",
+                   trace = FALSE)
+summary(step.lm)
+```
+According to the step function, this is the optimal formula for an lm with interaction terms and controls. But this model shows that nearly every variable is significant and significantly interacts with another. What are we supposed to do with this information? If we have all variable information available for a given county, it may give us a precise prediction of covid case rates. However, the many NAs in our dataset mean that a lot of counties would not have enough of these variables observed to make a prediction using this model (rows are removed entirely if any NAs are observed). This may hint that our model is overfitting our data.
+
+In addition, multiple linear regression models are difficult to visualize. A 3-D plane could be constructed to view a model with two independent variables, but beyond that, there isn't much we can do to understand our data visually. In ADDITION, interaction terms make the entire model less interpretable. We can no longer interpret the coefficient on any variable "holding all else constant". So while we maybe gain precision, we lose interpretability as well as the likelihood that our model can be used to accurately predict on new data.
+
+Without interaction terms, the step function actually isn't too bad at fitting a model. But again, we can't really visualize it and really just have to hope that it can produce accurate predictions.
+
+## Adjusted R-squared
+Our Adjusted R-squared value increased to 0.23, meaning variations in the model explain about 23% of variations in Covid case rates, but our F-statistic decreased. It's still significant, but it may suggest that our model overall isn't as strong.
+
+## F-statistic
+Our F-statistic is reduced but still statistically significant.
+
+
+Overall, using a stepwise function to find the best lm is not optimal because it results in overfitting, chooses models based on AIC rather than other significance measures, and as a result includes insignificant variables.
+
+# Stepwise Long LM without Interaction Terms
+```{r}
+step.lm2 <- stepAIC(full.lm,
+                   direction = "both",
+                   trace = FALSE)
+summary(step.lm2)
+```
+## Adjusted R-squared
+Our Adjusted R-sqared term increased from 0.02 in our simple lm to 0.11 here. It's still lower the 0.24 value we got from our long lm including interaction terms, meaning it explains less of the data. However, with fewer variables and no interaction terms, coefficients are relatively easy to interpret and we gain some ability to explain variations in COVID case rates. 
+
+## F-statistic:
+Our F-statistic jumps up again, suggesting that this model is still relatively strong and our R-squared is significantly different from 0.
+
+## Significance of our initial independent variable of interest
+Eviction filing rates are no longer significant in this model, which highlights how lms can actually be helpful in identifying important variables so you don't have to guess yourself. However, we are no longer answering our question and cannot make meaningful conclusions about our hypotheses.
+
+
+One downside to all of these linear models using a continuous dependent variable is that we can't measure accuracy as we can with other types of predictive models. To adjust our model to allow us to do this, we can perform a logit using a binary dependent variable: Whether Covid cases at the county level are greater than the state average.
+
+# Simple Logistic Regression
+```{r}
+logit.model <- glm(covidCases_greater_state ~ `eviction-filing-rate`, 
+                   family = 'binomial',
+                   data = covid.eviction)
+
+summary(logit.model)
+```
+# AIC
+In this logit model, our eviction filing rate is significant and our AIC high. AIC represents the quality of our model using out-of-sample prediction errors, so a high AIC suggests a strong model. 
+
+Because we only have one dependent variable, it's pretty easy to visualize:
+
+```{r}
+covid.eviction %>%
+  ggplot(aes(x = `eviction-filing-rate`, 
+             y = covidCases_greater_state)) +
+  geom_point(alpha = 0.25) +
+  stat_smooth(method = "glm", 
+              method.args = list(family = "binomial"), 
+              se = FALSE)
+```
+By viewing our plot we can see that there's some interesting stuff going on here. For the most part, the distribution of Yesses and No's (1s and 0s) doesn't appear that different along eviction filing rates. Additionally, we still have on outlier at an eviction filing rate of >100. Also, our curve never seems to drop below 0.20, meaning it would never actually predict an outcome of 0 (that the covid case rate in a given county are lower than state averages). Is this logit model good at helping us predict covid outcomes? 
+
+I will make predictions on the data, round the predictions to 0 or 1, and compare with actual covidCases_Greater_State values to measure accuracy.
+```{r}
+# subsetting original data to train & test
+ran <- sample(1:nrow(covid.eviction), 0.9 * nrow(covid.eviction))
+
+covid.eviction2 <- covid.eviction[, c(21, 41)] %>%
+  na.omit()
+
+train <- covid.eviction2[ran, ]
+test <- covid.eviction2[-ran, 1]
+# train.cl <- covid.eviction2[ran, 2]
+test.cl <- covid.eviction2[-ran, 2]
+  
+# # making sure dependent variable is read as factor
+# train.cl$covidCases_greater_state <- as.factor(train.cl$covidCases_greater_state)
+# test.cl$covidCases_greater_state <- as.factor(test.cl$covidCases_greater_state)
+
+train.logit.model <- glm(covidCases_greater_state ~ `eviction-filing-rate`, 
+                   family = 'binomial',
+                   data = train)
+
+# creating column of predictions
+logit.predict <- test %>%
+  mutate(prediction = round(predict.glm(train.logit.model,
+                          newdata = test,
+                          type = 'response')))
+
+# confusion matrix
+cm1 <- confusionMatrix(as.factor(logit.predict$prediction), as.factor(test.cl$covidCases_greater_state))
+logit.accuracy <- 0.7509
+logit.kappa <- -0.0057
+
+print(cm1)
+```
+## Accuracy
+While our accuracy using our logistic regression model is relatively high at 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
+
+## Precision: 
+```{r}
+logit.precision <- precision(cm1$table)
+print(logit.precision)
+```
+Relatively high precision (positive predictive value) demonstrates that this model tells us that the fraction of relevant predictions (true positives) out of all predictions (true positives + false positives) is somewhat high. While there are false positives reflected in our denominator, we're not too worried about that with a covid model. It might be better to have false positives than false negatives. Because this value is still less than 1, it means not all results retreived by our model were relevant.
+
+## Recall:
+```{r}
+logit.recall <- recall(cm1$table)
+print(logit.recall)
+```
+## Recall
+The recall value represents how well our model retreives relevant instances: true positives & false negatives. We care about false negatives because we really would not want our model to produce much of that if we were using it to predict areas with covid strains. Our super high recall value shows us that our model retrieved almost all relevant instances.
+
+## F-measure:
+Since we really can't cay for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
+```{r}
+logit.f <- F_meas(cm1$table)
+logit.matrix <- data.frame(Measure = c("Accuracy", "Precision", "Recall", "F-measure", "Kappa"),
+                           Value = c(logit.accuracy, logit.precision, logit.recall, logit.f,
+                                     logit.kappa))
+print(logit.f)
+```
+Our F-measure is 0.86. Considering 1 is the upper limit on this measure, this is actually pretty good, but we can know more about it by comparing to the f-measure we get from our KNN models.
+
+## Cohen's Kappa:
+Kappa compares observed accuracy to the accuracy we would expect if classification was random. Since Kappas range from -1 tp 1 in value, our Kappa of -0.0057 represents no agreement, meaning our model isn't doing any better than random chance at matching predictions to our true observations.
+
 
 # 2. KNN
-For my KNN function, I am using accuracy as my metric for optimization. Because there is a tradeoff between increasing values of K and reducing the number of classes, and a tradeoff between reducing values of K and response to variation in the data, I make this decision by plotting accuracies of our KNN function at various K's (1-10) and choose the smallest K at which marginal increase in accuracy seems to taper off.
+For my KNN function, I am using accuracy as my initial metric for optimization. Because there is a tradeoff between increasing values of K and reducing the number of classes, and a tradeoff between reducing values of K and response to variation in the data, I make this decision by plotting accuracies of our KNN function at various K's (1-10) and choose the smallest K at which marginal increase in accuracy seems to taper off.
 
 ```{r}
 # create function to normalize axis to improve distance calculations
@@ -106,6 +284,7 @@ ce2$eviction.filing.rate <- normalize.function(ce2$`eviction-filing-rate`)
 store <- NULL
 accuracy <- NULL
 
+# because this seems to take forever, I'm limiting k to 10
 for(k in 1:10){
   
   for(i in 1:nrow(ce2)){
@@ -140,13 +319,37 @@ find.k %>%
   geom_line()
 ```
 
-We'll go with k = 7.
+We'll go with k = 5, 7, and 10.
 ```{r}
 # create a grid of normalized values within the range of our training data for visualization:
 eviction.norm.seq <- seq(from = 0, to = 1, by = .01)
 afam.norm.seq <- seq(from = 0, to = 1, by = .01)
 norm.grid <- expand.grid(eviction.norm.seq, afam.norm.seq)
 colnames(norm.grid)[c(1,2)] <- c('eviction.filing.rate', 'pct.af.am') 
+
+knn.grid <- norm.grid %>%
+  mutate(prediction = knn(train = ce2 %>%
+                            dplyr::select(pct.af.am, eviction.filing.rate),
+                          test = norm.grid,
+                          ce2$covidCases_greater_state,
+                          5))
+
+knn.grid %>%
+  ggplot(aes(x = eviction.filing.rate,
+             y = pct.af.am)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.1) +
+  geom_point(data = ce2,
+             mapping = aes(x = eviction.filing.rate,
+                           y = pct.af.am,
+                           color = factor(covidCases_greater_state),
+                           alpha = 0.5),
+             size = 3) +
+  xlab('County Eviction Filing Rate') +
+  ylab('County Percent African American Residents') +
+  ggtitle('(K = 5) How well does our KNN model predict county COVID cases?') +
+  scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
 
 knn.grid <- norm.grid %>%
   mutate(prediction = knn(train = ce2 %>%
@@ -164,18 +367,46 @@ knn.grid %>%
   geom_point(data = ce2,
              mapping = aes(x = eviction.filing.rate,
                            y = pct.af.am,
-                           color = factor(covidCases_greater_state)),
+                           color = factor(covidCases_greater_state),
+                           alpha = 0.5),
              size = 3) +
   xlab('County Eviction Filing Rate') +
   ylab('County Percent African American Residents') +
-  ggtitle('How well does our KNN model predict county COVID cases?') +
+  ggtitle('(K = 7) How well does our KNN model predict county COVID cases?') +
+  scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
+
+knn.grid <- norm.grid %>%
+  mutate(prediction = knn(train = ce2 %>%
+                            dplyr::select(pct.af.am, eviction.filing.rate),
+                          test = norm.grid,
+                          ce2$covidCases_greater_state,
+                          10))
+
+knn.grid %>%
+  ggplot(aes(x = eviction.filing.rate,
+             y = pct.af.am)) +
+  geom_point(aes(color = factor(prediction)),
+             size = 2,
+             alpha = 0.1) +
+  geom_point(data = ce2,
+             mapping = aes(x = eviction.filing.rate,
+                           y = pct.af.am,
+                           color = factor(covidCases_greater_state),
+                           alpha = 0.5),
+             size = 3) +
+  xlab('County Eviction Filing Rate') +
+  ylab('County Percent African American Residents') +
+  ggtitle('(K = 10) How well does our KNN model predict county COVID cases?') +
   scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
 ```
 
-Looking at this plot, we can see that there are a lot of blue predicitons ocurring between 0.50 and 1.00 eviction filing rates where there aren't any original data. That suggests that our model would falsely predict a lot of 'Less than state avg' in places where we have no original data to confirm that to be true. This may be driven by an outlier in eviction filing rates near 1.00 (normalized). This suggests that a KNN model is less helpful in making predictions on values that it isn't trained on. Applied to our real world example, if testing is largely done in counties with low eviction rates or eviction rates really are skewed so drastically, KNN may not be a great predictor for COVID case rates in underrepresented areas.
+Looking at this plot, we can see that there are a lot of blue predicitons ocurring between 0.50 and 1.00 eviction filing rates where there aren't any original data for all three K values. That suggests that our model would falsely predict a lot of 'Less than state avg' in places where we have no original data to confirm that to be true. This may be driven by an outlier in eviction filing rates near 1.00 (normalized). This suggests that a KNN model is less helpful in making predictions on values that it isn't trained on. Applied to our real world example, if testing is largely done in counties with low eviction rates or eviction rates really are skewed so drastically, KNN may not be a great predictor for COVID case rates in underrepresented areas.
 
-How good is this KNN model?
-# Confusion Matrix for KNN
+In addition, because we have so much data and it's largely clustered in one third of the grid, it's actually hard to tell what's going on with our predictions behind the actual datapoints. Our two classes aren't very clearly separated, which makes it difficult to get any meaningful separations using a KNN model.
+
+How good is this KNN model by other measures?
+
+## Confusion Matrix for KNN
 ```{r}
 # subsetting original data to train & test
 ran <- sample(1:nrow(ce2), 0.9 * nrow(ce2))
@@ -190,26 +421,76 @@ train.cl$covidCases_greater_state <- as.factor(train.cl$covidCases_greater_state
 test.cl$covidCases_greater_state <- as.factor(test.cl$covidCases_greater_state)
 
 # creating column of predictions
-knn.predict <- test %>%
+knn.predict.k5 <- test %>%
   mutate(prediction = knn(train = train,
                           test = test,
                           train.cl$covidCases_greater_state,
-                          4))
+                          k = 5))
 
-# confusion matrix
-confusionMatrix(knn.predict$prediction, test.cl$covidCases_greater_state)
+# creating column of predictions
+knn.predict.k7 <- test %>%
+  mutate(prediction = knn(train = train,
+                          test = test,
+                          train.cl$covidCases_greater_state,
+                          k = 7))
+
+# creating column of predictions
+knn.predict.k10 <- test %>%
+  mutate(prediction = knn(train = train,
+                          test = test,
+                          train.cl$covidCases_greater_state,
+                          k = 10))
+
+cm.k5 <- confusionMatrix(knn.predict.k5$prediction, test.cl$covidCases_greater_state)
+accuracy.k5 <- 0.6952
+precision.k5 <- precision(cm.k5$table)
+recall.k5 <- recall(cm.k5$table)
+f.k5 <- F_meas(cm.k5$table)
+kappa.k5 <- as.data.table(cm.k5$overall)[2]
+
+cm.k7 <- confusionMatrix(knn.predict.k7$prediction, test.cl$covidCases_greater_state)
+accuracy.k7 <- 0.6952
+precision.k7 <- precision(cm.k7$table)
+recall.k7 <- recall(cm.k7$table)
+f.k7 <- F_meas(cm.k7$table)
+kappa.k7 <- as.data.table(cm.k7$overall)[2,]
+
+cm.k10 <- confusionMatrix(knn.predict.k10$prediction, test.cl$covidCases_greater_state)
+accuracy.k10 <- 0.6877
+precision.k10 <- precision(cm.k10$table)
+recall.k10 <- recall(cm.k10$table)
+f.k10 <- F_meas(cm.k10$table)
+kappa.k10 <- as.data.table(cm.k10$overall)[2,]
+
+kappas <- c(kappa.k5, kappa.k7, kappa.k10)
+kappas <- unlist(kappas, use.names = FALSE)
+
+KNN.matrix <- data.frame(K = c(5, 7, 10), 
+  Accuracy = c(accuracy.k5, accuracy.k7, accuracy.k10),
+  Precision = c(precision.k5, precision.k7, precision.k10),
+  Recall = c(recall.k5, recall.k7, recall.k10),
+  F_measure = c(f.k5, f.k7, f.k10),
+  Kappa = kappas)
+
+kable(KNN.matrix)
 ```
+## Accuracy:
+It appears that accuracy is the same for both k = 7 and 10 and a bit higher for k = 5. This makes intuitive sense becuase with a smaller k, you're looking at 'closer' neighbors which are more likely to be similar to each other, and thus better predictors of each other's outcomes.
 
-This confusion matrix gives us several ways to measure how good our model is.
+However, even the highest accuracy of 0.6952 is not really that high because it means a large fraction of our predictions made by these models are incorrect. All of these accuracies are lower than that of our logistic regression model.
 
-# Accuracy:
+## Precision:
+Precision seems to decrease as K increases, suggesting a lower k is preferable when aiming for precision/a higher fraction of our retrieved instances to be relevant. These precision values are all higher than that of our logit model.
 
+## Recall: 
+Recall increases as K increases, suggesting a higher k is preferable if we care more about a high recall/retrieving more of the total relevant instances. These recall values are all well below that of our logit model.
 
-# Precision:
+## F-measure:
+F-measure increases as K increases. If we weigh precision and recall equally, our f-measures suggest that a k of 10 is optimal, as it maximizes precision and recall on balance. These f-measures are all a little lower than that of our logit model.
 
+## Cohen's Kappa:
+The Kappas don't seem to follow any particular pattern (they change every time the code is run), making it difficult to assess the true value of Kappa. Our kappas are all pretty low (below 0.20). Kappas of this value are considered ot have little to no agreement, meaning despite our other favorabl measures, these KNN models may not be much better at predicting than random chance. However, these kappas are all well above the negative kappa produced by our logit model.
 
-# Cohen's Kappa:
-Kappa compares observed accuracy and compares it to the accuracy we would expect if classification was random. Our Kappa of 0.0765. Since Kappas range from -1 tp 1 in value, our Kappa represents only slight agreement between 
 
 
 #3.Single Decision Trees, Bagging, Boosting and Random Forests 
@@ -904,10 +1185,6 @@ kable(comparison, digits = 3)
 Looking at the comparison table above, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus accuracy and kappa of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
 
 # 4. LDA
-```{r}
-library(MASS)
-```
-
 Similar to Logistic Regression, Linear Discriminant Analysis aims to decrease the dimensionality 
 of a dataset.  LDA is useful in predicting categorical variables.  Specifically in the following case, I want to use LDA to answer the following question:
 1. What line best separates STATES with COVID-death rates above the US national average from those with COVID-death rates below the national average?
