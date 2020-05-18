@@ -224,13 +224,13 @@ logit.predict <- test %>%
 
 # confusion matrix
 cm1 <- confusionMatrix(as.factor(logit.predict$prediction), as.factor(test.cl$covidCases_greater_state))
-logit.accuracy <- 0.7509
-logit.kappa <- -0.0057
+logit.accuracy <- as.data.table(cm1$overall)[1,]
+logit.kappa <- as.data.table(cm1$overall)[2,]
 
 print(cm1)
 ```
 ## Accuracy
-While our accuracy using our logistic regression model is relatively high at 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
+While our accuracy using our logistic regression model is relatively high at around 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
 
 ## Precision: 
 ```{r}
@@ -248,12 +248,20 @@ print(logit.recall)
 The recall value represents how well our model retreives relevant instances: true positives & false negatives. We care about false negatives because we really would not want our model to produce much of that if we were using it to predict areas with covid strains. Our super high recall value shows us that our model retrieved almost all relevant instances.
 
 ## F-measure:
-Since we really can't cay for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
+Since we really can't say for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
 ```{r}
 logit.f <- F_meas(cm1$table)
-logit.matrix <- data.frame(Measure = c("Accuracy", "Precision", "Recall", "F-measure", "Kappa"),
-                           Value = c(logit.accuracy, logit.precision, logit.recall, logit.f,
-                                     logit.kappa))
+logit.matrix <-
+  data.frame(
+    Measure = c("Accuracy", "Precision", "Recall", "F-measure", "Kappa"),
+    Value = c(
+      as.numeric(logit.accuracy),
+      as.numeric(logit.precision),
+      as.numeric(logit.recall),
+      as.numeric(logit.f),
+      as.numeric(logit.kappa)
+    )
+  )
 print(logit.f)
 ```
 Our F-measure is 0.86. Considering 1 is the upper limit on this measure, this is actually pretty good, but we can know more about it by comparing to the f-measure we get from our KNN models.
@@ -442,21 +450,21 @@ knn.predict.k10 <- test %>%
                           k = 10))
 
 cm.k5 <- confusionMatrix(knn.predict.k5$prediction, test.cl$covidCases_greater_state)
-accuracy.k5 <- 0.6952
+accuracy.k5 <- as.data.table(cm.k5$overall)[1]
 precision.k5 <- precision(cm.k5$table)
 recall.k5 <- recall(cm.k5$table)
 f.k5 <- F_meas(cm.k5$table)
 kappa.k5 <- as.data.table(cm.k5$overall)[2]
 
 cm.k7 <- confusionMatrix(knn.predict.k7$prediction, test.cl$covidCases_greater_state)
-accuracy.k7 <- 0.6952
+accuracy.k7 <- as.data.table(cm.k7$overall)[1,]
 precision.k7 <- precision(cm.k7$table)
 recall.k7 <- recall(cm.k7$table)
 f.k7 <- F_meas(cm.k7$table)
 kappa.k7 <- as.data.table(cm.k7$overall)[2,]
 
 cm.k10 <- confusionMatrix(knn.predict.k10$prediction, test.cl$covidCases_greater_state)
-accuracy.k10 <- 0.6877
+accuracy.k10 <- as.data.table(cm.k10$overall)[1,]
 precision.k10 <- precision(cm.k10$table)
 recall.k10 <- recall(cm.k10$table)
 f.k10 <- F_meas(cm.k10$table)
@@ -464,13 +472,14 @@ kappa.k10 <- as.data.table(cm.k10$overall)[2,]
 
 kappas <- c(kappa.k5, kappa.k7, kappa.k10)
 kappas <- unlist(kappas, use.names = FALSE)
-
+  
 KNN.matrix <- data.frame(K = c(5, 7, 10), 
   Accuracy = c(accuracy.k5, accuracy.k7, accuracy.k10),
   Precision = c(precision.k5, precision.k7, precision.k10),
   Recall = c(recall.k5, recall.k7, recall.k10),
   F_measure = c(f.k5, f.k7, f.k10),
   Kappa = kappas)
+
 
 kable(KNN.matrix)
 ```
@@ -492,9 +501,8 @@ F-measure increases as K increases. If we weigh precision and recall equally, ou
 The Kappas don't seem to follow any particular pattern (they change every time the code is run), making it difficult to assess the true value of Kappa. Our kappas are all pretty low (below 0.20). Kappas of this value are considered ot have little to no agreement, meaning despite our other favorabl measures, these KNN models may not be much better at predicting than random chance. However, these kappas are all well above the negative kappa produced by our logit model.
 
 
-
 #3.Single Decision Trees, Bagging, Boosting and Random Forests 
-In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
+In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
 
 ## Create Training and Testing Data
 Create two data, one for training the different models and the other for testing the models.
@@ -1091,16 +1099,19 @@ kappa <- function(confusion.matrix) {
 ```
 
 # Create a table to compare all models
-We calculate the accuracy and the kappa of each model, and we use that to generate a comparison table that shows the accuracy and the kappa for each type of model for each outcome variable. 
+We calculate the accuracy, kappa, precision, recall and f statistics of each model, and we use that to generate a comparison table that shows the efficiency for each type of model for each outcome variable. 
 ```{r comparison}
 #vector of 4 different outcome variables
 outcome.vars <- c("case.state", "case.US", "death.state", "death.US")
 
-#null vectors for single decision tree models' accuracy and kappa values
+#null vectors for single decision tree models' accuracy, kappa, precision, recall and f
 tree.accuracy <- NULL
+tree.precision <- NULL
+tree.recall <- NULL
+tree.f <- NULL
 tree.kappa <- NULL
 
-#vectors for single decision tree models' accuracy values
+#vector for single decision tree models' accuracy values
 tree.accuracy <- c(
   accuracy(cm.tree.case.state),
   accuracy(cm.tree.case.US),
@@ -1108,7 +1119,31 @@ tree.accuracy <- c(
   accuracy(cm.tree.death.US)
 )
 
-#vectors for single decision tree models' kappa values
+#vector for precision
+tree.precision <- c(
+  precision(confusionMatrix(cm.tree.case.state)$table),
+  precision(confusionMatrix(cm.tree.case.US)$table),
+  precision(confusionMatrix(cm.tree.death.state)$table),
+  precision(confusionMatrix(cm.tree.death.US)$table)
+)
+
+#vector for recall
+tree.recall <- c(
+  recall(confusionMatrix(cm.tree.case.state)$table),
+  recall(confusionMatrix(cm.tree.case.US)$table),
+  recall(confusionMatrix(cm.tree.death.state)$table),
+  recall(confusionMatrix(cm.tree.death.US)$table)
+)
+
+#vector for f stats
+tree.f <- c(
+  F_meas(confusionMatrix(cm.tree.case.state)$table),
+  F_meas(confusionMatrix(cm.tree.case.US)$table),
+  F_meas(confusionMatrix(cm.tree.death.state)$table),
+  F_meas(confusionMatrix(cm.tree.death.US)$table)
+)
+
+#vector for single decision tree models' kappa values
 tree.kappa <- c(
   kappa(cm.tree.case.state),
   kappa(cm.tree.case.US),
@@ -1116,11 +1151,14 @@ tree.kappa <- c(
   kappa(cm.tree.death.US)
 )
 
-#null vectors for bagging models' accuracy and kappa values
+#null vectors for bagging models' accuracy, kappa, precision, recall and f
 bagging.accuracy <- NULL
+bagging.precision <- NULL
+bagging.recall <- NULL
+bagging.f <- NULL
 bagging.kappa <- NULL
 
-#vectors for bagging models' accuracy values
+#vector for bagging models' accuracy values
 bagging.accuracy <- c(
   accuracy(cm.bagging.case.state),
   accuracy(cm.bagging.case.US),
@@ -1128,7 +1166,31 @@ bagging.accuracy <- c(
   accuracy(cm.bagging.death.US)
 )
 
-#vectors for bagging models' kappa values
+#vector for precision
+bagging.precision <- c(
+  precision(confusionMatrix(cm.bagging.case.state)$table),
+  precision(confusionMatrix(cm.bagging.case.US)$table),
+  precision(confusionMatrix(cm.bagging.death.state)$table),
+  precision(confusionMatrix(cm.bagging.death.US)$table)
+)
+
+#vector for recall
+bagging.recall <- c(
+  recall(confusionMatrix(cm.bagging.case.state)$table),
+  recall(confusionMatrix(cm.bagging.case.US)$table),
+  recall(confusionMatrix(cm.bagging.death.state)$table),
+  recall(confusionMatrix(cm.bagging.death.US)$table)
+)
+
+#vector for f stats
+bagging.f <- c(
+  F_meas(confusionMatrix(cm.bagging.case.state)$table),
+  F_meas(confusionMatrix(cm.bagging.case.US)$table),
+  F_meas(confusionMatrix(cm.bagging.death.state)$table),
+  F_meas(confusionMatrix(cm.bagging.death.US)$table)
+)
+
+#vector for bagging models' kappa values
 bagging.kappa <- c(
   kappa(cm.bagging.case.state),
   kappa(cm.bagging.case.US),
@@ -1136,11 +1198,14 @@ bagging.kappa <- c(
   kappa(cm.bagging.death.US)
 )
 
-#null vectors for boosting models' accuracy and kappa values
+#null vectors for boosting models' accuracy, kappa, precision, recall and f
 boosting.accuracy <- NULL
+boosting.precision <- NULL
+boosting.recall <- NULL
+boosting.f <- NULL
 boosting.kappa <- NULL
 
-#vectors for boosting models' accuracy values
+#vector for boosting models' accuracy values
 boosting.accuracy <- c(
   accuracy(cm.boosting.case.state),
   accuracy(cm.boosting.case.US),
@@ -1148,7 +1213,31 @@ boosting.accuracy <- c(
   accuracy(cm.boosting.death.US)
 )
 
-#vectors for boosting models' kappa values
+#vector for precision
+boosting.precision <- c(
+  precision(confusionMatrix(cm.boosting.case.state)$table),
+  precision(confusionMatrix(cm.boosting.case.US)$table),
+  precision(confusionMatrix(cm.boosting.death.state)$table),
+  precision(confusionMatrix(cm.boosting.death.US)$table)
+)
+
+#vector for recall
+boosting.recall <- c(
+  recall(confusionMatrix(cm.boosting.case.state)$table),
+  recall(confusionMatrix(cm.boosting.case.US)$table),
+  recall(confusionMatrix(cm.boosting.death.state)$table),
+  recall(confusionMatrix(cm.boosting.death.US)$table)
+)
+
+#vector for f stats
+boosting.f <- c(
+  F_meas(confusionMatrix(cm.boosting.case.state)$table),
+  F_meas(confusionMatrix(cm.boosting.case.US)$table),
+  F_meas(confusionMatrix(cm.boosting.death.state)$table),
+  F_meas(confusionMatrix(cm.boosting.death.US)$table)
+)
+
+#vector for boosting models' kappa values
 boosting.kappa <- c(
   kappa(cm.boosting.case.state),
   kappa(cm.boosting.case.US),
@@ -1156,11 +1245,13 @@ boosting.kappa <- c(
   kappa(cm.boosting.death.US)
 )
 
-#null vectors for random forest models' accuracy and kappa values
+#null vectors for random forest models' accuracy, kappa, precision, recall and f
 rf.accuracy <- NULL
-rf.kappa <- NULL
+rf.precision <- NULL
+rf.recall <- NULL
+rf.f <- NULL
 
-#vectors for random forest models' accuracy values
+#vector for random forest models' accuracy values
 rf.accuracy <- c(
   accuracy(cm.rf.case.state),
   accuracy(cm.rf.case.US),
@@ -1168,7 +1259,31 @@ rf.accuracy <- c(
   accuracy(cm.rf.death.US)
 )
 
-#vectors for random forest models' kappa values
+#vector for precision
+rf.precision <- c(
+  precision(confusionMatrix(cm.rf.case.state)$table),
+  precision(confusionMatrix(cm.rf.case.US)$table),
+  precision(confusionMatrix(cm.rf.death.state)$table),
+  precision(confusionMatrix(cm.rf.death.US)$table)
+)
+
+#vector for recall
+rf.recall <- c(
+  recall(confusionMatrix(cm.rf.case.state)$table),
+  recall(confusionMatrix(cm.rf.case.US)$table),
+  recall(confusionMatrix(cm.rf.death.state)$table),
+  recall(confusionMatrix(cm.rf.death.US)$table)
+)
+
+#vector for f stats
+rf.f <- c(
+  F_meas(confusionMatrix(cm.rf.case.state)$table),
+  F_meas(confusionMatrix(cm.rf.case.US)$table),
+  F_meas(confusionMatrix(cm.rf.death.state)$table),
+  F_meas(confusionMatrix(cm.rf.death.US)$table)
+)
+
+#vector for random forest models' kappa values
 rf.kappa <- c(
   kappa(cm.rf.case.state),
   kappa(cm.rf.case.US),
@@ -1177,12 +1292,12 @@ rf.kappa <- c(
 )
 
 #generate data frame of accuracy and kappa values of each models for different outcome variables
-comparison <- data.frame(outcome.vars, tree.accuracy, tree.kappa, bagging.accuracy, bagging.kappa, boosting.accuracy, boosting.kappa, rf.accuracy, rf.kappa)
+comparison <- data.frame(outcome.vars, tree.accuracy, bagging.accuracy, boosting.accuracy, rf.accuracy, tree.precision, bagging.precision, boosting.precision, rf.precision, tree.recall, bagging.recall, boosting.recall, rf.recall, tree.f, bagging.f, boosting.f, rf.f, tree.kappa, bagging.kappa, boosting.kappa, rf.kappa)
 
 kable(comparison, digits = 3)
 ```
 
-Looking at the comparison table above, random forest models generally have the highest accuracy and high kappa values. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus accuracy and kappa of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
+Looking at the comparison table above, boosting and random forest models generally have the highest accuracy. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Across most measures, bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus most measures of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
 
 # 4. Linear Discriminant Analysis (LDA)
 Question: How can we use Linear Discriminant Analysis to best separate state's with COVID death rates and death rates greater than the national average using demographic and eviction data?
@@ -1321,10 +1436,58 @@ Of the total 176 counties in the testing sameple with COVID death rates lower th
 
 ## Comparing accuracies in all Supervised Learning techniques in a table:
 ```{r}
+#create vector of each measures
+measure = c("Accuracy", "Precision", "Recall", "F-measure", "Kappa")
 
+#logit model vector
+logit.vector <- logit.matrix[, 2]
+
+#KNN vectors
+KNN.5.vector <- c(as.numeric(accuracy.k5), as.numeric(precision.k5), as.numeric(recall.k5), as.numeric(f.k5), as.numeric(kappa.k5))
+
+KNN.7.vector <- c(as.numeric(accuracy.k7), as.numeric(precision.k7), as.numeric(recall.k7), as.numeric(f.k7), as.numeric(kappa.k7))
+
+KNN.10.vector <- c(as.numeric(accuracy.k10), as.numeric(precision.k10), as.numeric(recall.k10), as.numeric(f.k10), as.numeric(kappa.k10))
+
+#tree vector
+tree.vector <- c(tree.accuracy[1], tree.precision[1], tree.recall[1], tree.f[1], tree.kappa[1])
+
+#bagging vector
+bagging.vector <- c(bagging.accuracy[1], bagging.precision[1], bagging.recall[1], bagging.f[1], bagging.kappa[1])
+
+#boosting vector
+boosting.vector <- c(boosting.accuracy[1], boosting.precision[1], boosting.recall[1], boosting.f[1], boosting.kappa[1])
+
+#rf vector
+rf.vector <- c(rf.accuracy[1], rf.precision[1], rf.recall[1], rf.f[1], rf.kappa[1])
+
+# LDA accuracy, precision, recall, f and kappa
+LDA.case.accuracy <- as.numeric(LDA.case.accuracy)
+LDA.case.precision <- precision(LDA.case.confusion)
+LDA.case.recall <- recall(LDA.case.confusion)
+LDA.case.f <- F_meas(LDA.case.confusion)
+LDA.case.kappa <- as.numeric(confusionMatrix(LDA.case.confusion, mode = "everything")$overall[2])
+
+LDA.vector <- c(LDA.case.accuracy, LDA.case.precision, LDA.case.recall, LDA.case.f, LDA.case.kappa)
+
+comparison.supervised <- data.frame(
+Measure = c(measure),
+Logit = c(logit.vector),
+KNN.5 = c(KNN.5.vector),
+KNN.7 = c(KNN.7.vector),
+KNN.10 = c(KNN.10.vector),
+Tree = c(tree.vector),
+Bagging = c(bagging.vector),
+Boosting = c(boosting.vector),
+Random.Forest = c(rf.vector),
+LDA = c(LDA.vector)
+)
+
+kable(comparison.supervised, digits = 3)
 ```
 
 ## Overall analysis of Supervised Learning techniques:
+The table above compares the 5 measures (accuracy, precision, recall, f stats, and kappa) across all supervised learning techniques that we used to predict whether COVID-19 cases are greater than the state average in a given county using its eviction filing rate and other demographic variables. It seems like random forest and LDA models are the most effective when it comes to predicting the outcome, with high values across all 5 measures.
 
 
 # [UNSUPERVISED LEARNING]
@@ -1874,7 +2037,7 @@ Meanwhile, in unsupervised learning, we were focused more on how regions (e.g. c
 The practical use of combining supervised and unsupervised learning allows us to observe the characteristics of a certain area/region that would potentially influence certain levels (high or low) of outbreaks and/or deaths caused by Covid-19. For example, if we were to observe a situation with high correlation between high housing instability and covid cases (or deaths), then policy makers could approach the Covid issue by addressing what could perhaps be its root cause: housing instability and/or eviction. 
 
 #2. Supervised Learning
-
+As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
 
 #3. Unsupervised learning
 Firstly, PCA allows to decrease dimensionality of the data, because a single component or variable can account for multiple variables in the data. On the other hand, it can be difficult to visualize high-dimensional data, simlar to K-means clustering, as we are unable to see the individually analyze each variable. However, despite the lack of ability to visually present the data, it can give insight to what drives the dendrogram that we create.
