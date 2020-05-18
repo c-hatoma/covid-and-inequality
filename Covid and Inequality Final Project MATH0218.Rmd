@@ -1503,7 +1503,7 @@ While other unsupervised learning techniques such as heirchical or knn clusterin
 
 In order for this analysis to be completely unsupervised, I do not examine any COVID data in my PCA.  Instead, I use PCA to examine baseline differences between States, prior to the COVID pandemic.
 
-# Main PCA - All Variables
+## Main PCA - All Variables
 ```{r}
 
 #Create "Clean" dataset on the COUNTY level (547 obs)
@@ -1570,7 +1570,7 @@ Our first PCA is a function of all 27 variables from the housing and evictions d
 In order to create a slightly more interpretable graphic, I create two variable subsets of data : "Housing & Evictions" and "Population Statistics: Race, Ethnicity, Poverty".  By performing PCA of these two subsets, I will be able to gain more insight on which variables in these subcategories create the most variance, and thus are most impactful.  
 
 
-## Subsetted PCAs: Housing & Eviction and Population Statistics
+### Subsetted PCAs: Housing & Eviction and Population Statistics
 
 ```{r}
 
