@@ -8,7 +8,7 @@ output: html_document
 # Introduction
 Our group aims to look at US county-level data on eviction and demographics (e.g. eviction filings, poverty rate, and racial distributions), as well as their relevance with Covid-19 statistics like death and case rates. Using supervised and unsupervised learning, we explore the data that we obtained from USAFacts (https://usafacts.org/visualizations/coronavirus-covid-19-spread-map), Eviction Lab (https://evictionlab.org/), and US Census as of 4/30/2020 (https://www.census.gov/popclock/).
 
-Given the wide range of learning techniques we explore in our project, each model will approach this topic in a slightly different way. 
+Given the wide range of learning techniques we explore in our project, each model addresses a different question.
 
 # Table of Contents
 Supervised Learning:
@@ -90,7 +90,7 @@ covid.eviction %>%
   geom_point() +
   geom_abline(slope = 9.185e-05, intercept = 1.121e-03, col = 'blue')
 ```
-Even though our coefficient ws significant, by looking at the fitted line plotted against the actual values from in our data tells us that our points are really clustered at the lower covid and eviction case rates, with just a couple outliers that are really skewing our fitted model. From a visual perspective, this lm does not fit the data well, so I wouldn't trust this model to make predictions about COVID cases based on eviction filing rates. Perhaps this means that a non-linear model would work best, but we can also try adding in additional control and interaction terms to see if the model changes.
+Even though our coefficient was significant, by looking at the fitted line plotted against the actual values from in our data tells us that our points are really clustered at the lower covid and eviction case rates, with just a couple outliers that are really skewing our fitted model. From a visual perspective, this lm does not fit the data well, so I wouldn't trust this model to make predictions about COVID cases based on eviction filing rates. Perhaps this means that a non-linear model would work best, but we can also try adding in additional control and interaction terms to see if the model changes.
 
 ```{r}
 sumstats <- stat.desc(covid.eviction %>%
@@ -159,6 +159,7 @@ step.lm2 <- stepAIC(full.lm,
                    trace = FALSE)
 summary(step.lm2)
 ```
+
 ### Adjusted R-squared
 Our Adjusted R-sqared term increased from 0.02 in our simple lm to 0.11 here. It's still lower the 0.24 value we got from our long lm including interaction terms, meaning it explains less of the data. However, with fewer variables and no interaction terms, coefficients are relatively easy to interpret and we gain some ability to explain variations in COVID case rates. 
 
@@ -228,26 +229,9 @@ logit.kappa <- as.data.table(cm1$overall)[2,]
 
 print(cm1)
 ```
-<<<<<<< HEAD
-<<<<<<< HEAD
-## Accuracy
-While our accuracy using our logistic regression model is relatively high at around 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
-=======
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-## Accuracy
-While our accuracy using our logistic regression model is relatively high at around 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
-=======
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
->>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
+
 ### Accuracy
-While our accuracy using our logistic regression model is relatively high at 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
->>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
+While our accuracy using our logistic regression model is relatively high at around 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
 
 ### Precision: 
 ```{r}
@@ -263,28 +247,8 @@ print(logit.recall)
 ```
 The recall value represents how well our model retreives relevant instances: true positives & false negatives. We care about false negatives because we really would not want our model to produce much of that if we were using it to predict areas with covid strains. Our super high recall value shows us that our model retrieved almost all relevant instances.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-## F-measure:
-Since we really can't say for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
-=======
-=======
-<<<<<<< HEAD
-=======
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
-## F-measure:
-Since we really can't say for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
-=======
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
-<<<<<<< HEAD
->>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
-=======
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 ### F-measure:
 Since we really can't cay for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
->>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
 ```{r}
 logit.f <- F_meas(cm1$table)
 logit.matrix <-
@@ -444,7 +408,7 @@ knn.grid %>%
   scale_color_discrete(name = "Prediction", labels = c("Greater than State Avg", "Less than State Avg"))
 ```
 
-Looking at this plot, we can see that there are a lot of blue predicitons ocurring between 0.50 and 1.00 eviction filing rates where there aren't any original data for all three K values. That suggests that our model would falsely predict a lot of 'Less than state avg' in places where we have no original data to confirm that to be true. This may be driven by an outlier in eviction filing rates near 1.00 (normalized). This suggests that a KNN model is less helpful in making predictions on values that it isn't trained on. Applied to our real world example, if testing is largely done in counties with low eviction rates or eviction rates really are skewed so drastically, KNN may not be a great predictor for COVID case rates in underrepresented areas.
+Looking at this plot, we can see that there are a lot of blue predictons ocurring between 0.50 and 1.00 eviction filing rates where there aren't any original data for all three K values. That suggests that our model would falsely predict a lot of 'Less than state avg' in places where we have no original data to confirm that to be true. This may be driven by an outlier in eviction filing rates near 1.00 (normalized). This suggests that a KNN model is less helpful in making predictions on values that it isn't trained on. Applied to our real world example, if testing is largely done in counties with low eviction rates or eviction rates really are skewed so drastically, KNN may not be a great predictor for COVID case rates in underrepresented areas.
 
 In addition, because we have so much data and it's largely clustered in one third of the grid, it's actually hard to tell what's going on with our predictions behind the actual datapoints. Our two classes aren't very clearly separated, which makes it difficult to get any meaningful separations using a KNN model.
 
@@ -510,12 +474,11 @@ kappas <- c(kappa.k5, kappa.k7, kappa.k10)
 kappas <- unlist(kappas, use.names = FALSE)
   
 KNN.matrix <- data.frame(K = c(5, 7, 10), 
-  Accuracy = c(accuracy.k5, accuracy.k7, accuracy.k10),
+  Accuracy = c(as.vector(accuracy.k5), as.vector(accuracy.k7), as.vector(accuracy.k10)),
   Precision = c(precision.k5, precision.k7, precision.k10),
   Recall = c(recall.k5, recall.k7, recall.k10),
   F_measure = c(f.k5, f.k7, f.k10),
   Kappa = kappas)
-
 
 kable(KNN.matrix)
 ```
@@ -539,29 +502,8 @@ F-measure increases as K increases. If we weigh precision and recall equally, ou
 The Kappas don't seem to follow any particular pattern (they change every time the code is run), making it difficult to assess the true value of Kappa. Our kappas are all pretty low (below 0.20). Kappas of this value are considered ot have little to no agreement, meaning despite our other favorabl measures, these KNN models may not be much better at predicting than random chance. However, these kappas are all well above the negative kappa produced by our logit model.
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-#3.Single Decision Trees, Bagging, Boosting and Random Forests 
-In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
-=======
-=======
-<<<<<<< HEAD
-=======
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
-#3.Single Decision Trees, Bagging, Boosting and Random Forests 
-In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
-=======
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
-<<<<<<< HEAD
->>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
-=======
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
-
 # 3.Single Decision Trees, Bagging, Boosting and Random Forests 
-In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
->>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
+In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
 
 ### Create Training and Testing Data
 Create two data, one for training the different models and the other for testing the models.
@@ -1157,26 +1099,8 @@ kappa <- function(confusion.matrix) {
 }
 ```
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-# Create a table to compare all models
-We calculate the accuracy, kappa, precision, recall and f statistics of each model, and we use that to generate a comparison table that shows the efficiency for each type of model for each outcome variable. 
-=======
-=======
-<<<<<<< HEAD
-<<<<<<< HEAD
-# Create a table to compare all models
-We calculate the accuracy, kappa, precision, recall and f statistics of each model, and we use that to generate a comparison table that shows the efficiency for each type of model for each outcome variable. 
-=======
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
->>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 ### Create a table to compare all models
-We calculate the accuracy and the kappa of each model, and we use that to generate a comparison table that shows the accuracy and the kappa for each type of model for each outcome variable. 
->>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
+We calculate the accuracy, kappa, precision, recall and f statistics of each model, and we use that to generate a comparison table that shows the efficiency for each type of model for each outcome variable. 
 ```{r comparison}
 #vector of 4 different outcome variables
 outcome.vars <- c("case.state", "case.US", "death.state", "death.US")
@@ -1374,7 +1298,7 @@ comparison <- data.frame(outcome.vars, tree.accuracy, bagging.accuracy, boosting
 kable(comparison, digits = 3)
 ```
 
-Looking at the comparison table above, boosting and random forest models generally have the highest accuracy. Boostig models have similarly high accuracy rates, but slightly higher kappa values than random forests. Across most measures, bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus most measures of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
+Looking at the comparison table above, boosting and random forest models generally have the highest accuracy. Boosting models have similarly high accuracy rates, but slightly higher kappa values than random forests. Across most measures, bagging models generally do better than single decision tree models. This is as expected, as decision trees have low bias but high variance. Bagging lowers variance of the models by using multiple decision trees, thus most measures of bagging models are generally higher than a single decision tree. On the other hand, boosting reduces bias by training with more weight on misclassified observations. Random forests, similarly to bagging, reduces variance, but it also creates a more robust model by randomizing the subset of variables considered at each split. 
 
 # 4. Linear Discriminant Analysis (LDA)
 Question: How can we use Linear Discriminant Analysis to best separate state's with COVID death rates and death rates greater than the national average using demographic and eviction data?
@@ -1385,6 +1309,8 @@ First, I apply LDA to predict whether a state will have a COVID death-rate great
 
 # County death Rate > State
 ```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
 # LDA for COUNTY death RATE greater than STATE
 cVs.case <- na.omit(covid.eviction %>%
   dplyr::select( -US_covid_cases_rate, -covidDeaths_greater_state, 
@@ -1441,15 +1367,17 @@ LDA.case.confusion <- table(yhat,testy)
 confusionMatrix(LDA.case.confusion, mode = "everything")
 ```
 
-#Accuracy and Confusion Matrix
+# Accuracy and Confusion Matrix
 Our LDA model predicting whether State COVID cases rates are higher or lower than their state's average has an accuracy of approximately 76.21%.  In comparison to the other other supervised learning algorithms explored in this project, this accuracy is about average.  To get a better understanding how the distribution of correct and incorrect predictions, I generated a 2x2 confusion matrix of predicted values.  
 
-Of the total 822 counties in the testing sameple with COVID case rates lower than their state's average, 641 were correctly predicted by the LDA.  Predictions for counties with COVID case rates higher than their state's average were notably less accurate- only 54 of a total 90 counties were correctly classified.  This suggests that counties with higher case rates may not necessarily behave similarly to high-case counties within or outside their home state.  
+Of the total 822 counties in the testing sameple with COVID case rates lower than their state's average, 641 were correctly predicted by the LDA.  Predictions for counties with COVID case rates higher than their state's average were notably less accurate- only 54 of a total 90 counties were correctly classified.  This suggests that counties with higher case rates may not necessarily behave similarly to high-case counties within or outside their home state.
 
-While LDA may not perform well in separating differences in county-level death rates, perhaps it will be more accurate at predicting whether a county's COVID death-rate is higher than its state average.  
+While LDA may not perform well in separating differences in county-level death rates, perhaps it will be more accurate at predicting whether a county's COVID death-rate is higher than its state average.
 
-# County Death Rate > State
+### County Death Rate > State
 ```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
 cVs.death <- na.omit(covid.eviction %>%
   dplyr::select( -US_covid_cases_rate, -covidCases_greater_state, 
          -US_covid_death_rate, -covidCases_greater_US, 
@@ -1506,15 +1434,13 @@ confusionMatrix(LDA.death.confusion, mode = "everything")
 
 ```
 
-#Accuracy and Confusion Matrix
+### Accuracy and Confusion Matrix
 Our LDA model predicting whether State COVID deaths rates are higher or lower than their state's average has an approximate accuracy of 54.27%.  This is lower that the accuracy of our COVID case model, as well as most of the other supervised learning algorithms previously utlized in this project.  Again, I generate a 2x2 confusion matrix to explore the distribution correct and incorrect predicted models.
 
-<<<<<<< HEAD
 Of the total 176 counties in the testing sameple with COVID death rates lower than their state's average, 100 were correctly predicted by the LDA.  As occured in the COVID case LDA model, predictions for counties with COVID death rates higher than their state's average were largely innaccurate - 15 of a total 23 counties were correctly classified.  Once again, this suggests that counties highly-effected by COVID, both in case and death rate, do not strictly believe similarly.  Without a clear separation between counties with higher or lower than state average death rates, LDA is likely not the most effective modeling technique to answer this question.
 
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 ### Comparing accuracies in all Supervised Learning techniques in a table:
+
 ```{r}
 #create vector of each measures
 measure = c("Accuracy", "Precision", "Recall", "F-measure", "Kappa")
@@ -1566,43 +1492,20 @@ LDA = c(LDA.vector)
 kable(comparison.supervised, digits = 3)
 ```
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
 ## Overall analysis of Supervised Learning techniques:
 The table above compares the 5 measures (accuracy, precision, recall, f stats, and kappa) across all supervised learning techniques that we used to predict whether COVID-19 cases are greater than the state average in a given county using its eviction filing rate and other demographic variables. It seems like random forest and LDA models are the most effective when it comes to predicting the outcome, with high values across all 5 measures.
-=======
-### Overall analysis of Supervised Learning techniques:
->>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
-<<<<<<< HEAD
-=======
-=======
-### Overall analysis of Supervised Learning techniques:
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
->>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
-=======
-## Overall analysis of Supervised Learning techniques:
-The table above compares the 5 measures (accuracy, precision, recall, f stats, and kappa) across all supervised learning techniques that we used to predict whether COVID-19 cases are greater than the state average in a given county using its eviction filing rate and other demographic variables. It seems like random forest and LDA models are the most effective when it comes to predicting the outcome, with high values across all 5 measures.
-=======
-### Overall analysis of Supervised Learning techniques:
->>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
-=======
-### Overall analysis of Supervised Learning techniques:
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 
 
 # [UNSUPERVISED LEARNING]
 
-#1. PCA
+# 1. PCA
 Principal Component Analysis is a useful tool for unsupervised machine learning. Like Linear Discriminant Analysis, PCA relies on linear transformations to summarize relationship between different variables.  By creating a "principal component" that is a weighted linear tranformation of n variables, PCA is able to decrease the dimensionality of a dataset.
 
 While other unsupervised learning techniques such as heirchical or knn clustering lend themselves more naturally to visualizing relationships between datapoints, they do little to explain what variables drive that relatedness.  This is where PCA is particularly useful in unsupervised machine learning.  By projecting n variables on a two-dimensional axis, we are able to examine which variables may be most important in differentiating classes from one another.
 
-In order for this analysis to be completely unsupervised, I do not examine any COVID data in my PCA.  Instead, I use PCA to examine baseline differences between States, prior to the COVID pandemic.  
+In order for this analysis to be completely unsupervised, I do not examine any COVID data in my PCA.  Instead, I use PCA to examine baseline differences between States, prior to the COVID pandemic.
+
+## Main PCA - All Variables
 ```{r}
 
 #Create "Clean" dataset on the COUNTY level (547 obs)
@@ -1663,14 +1566,14 @@ biplot(pca.state, scale = 0,
        arrow.len = 0)
 
 ```
-#Variation: Main PCA
+
+### Variation: Main PCA
 Our first PCA is a function of all 27 variables from the housing and evictions dataset.  The first principal component, PC1, has a variance of 7.85, or approximately 37.39% of the model's total variation.  The second princial component, PC2, has a variance of 4.75, and accounts for approximately 12.11% of the model's total variation. Because n = 27, some principal components contribute almost no variance to the model.  Next I graph a biplot of PC1 and PC2. Clearly, projecting 27 dimensions into 2 does not make for a quality graphic!  From what we are able to parse from this plot, most states appear to behave quite similarly. However we can see some clear outliers. DC appears to be leading on both the "evictions" and "eviction filing" index, closely followed by Maryland (MD). However, DC also is quite high on the "median household income" dimension, as well as the "rent burden" dimension.  This may be due to the fact that while DC is only a city, it is treated equivalently to all other states in this analysis.  Other states with major cities, such as New York (NYC) or Illinois (Chicago), also have rural and suburban areas that are included in state averages, DC is almost entirely urban.
 
 In order to create a slightly more interpretable graphic, I create two variable subsets of data : "Housing & Evictions" and "Population Statistics: Race, Ethnicity, Poverty".  By performing PCA of these two subsets, I will be able to gain more insight on which variables in these subcategories create the most variance, and thus are most impactful.  
 
 
-#Subsetted PCAs: Housing & Eviction and Population Statistics
-
+### Subsetted PCAs: Housing & Eviction and Population Statistics
 ```{r}
 
 #Let's create the "Housing & Evictions" subset
@@ -1696,10 +1599,11 @@ biplot(pca.housing, scale = 0,
 pca.housing
 
 ```
-#Variation & Analysis: Housing and Evictions PCA
+
+### Variation & Analysis: Housing and Evictions PCA
 After running PCA on the housing and evictions subset, I examine the two most impactful principal components.  PC1 accounts for 55.02% of the model's variance, and is mostly a function of "percent renter occupied" "median gross rent," and "median property value."  PC2 describes 27.41% of the model's variance, and is mainly a funtion of "eviction rate" and "eviction filing."  I then graph a biplot of PC1 and PC2.  
 
-From this biplot, we can seetwo clear clusters of variables.  The dimensionality of "eviction" variables(eviction rate and eviction filing) is nearly perpendicular to the rest of the "housing" variables (percent renter occupied, mean gross rent, etc). This is somewhat surprising to me, as I would have assumed that variables such as median property value and median rent would possibly be correlated with eviction rates.  For robustness, I re-run the "housing" PCA to include "median household income," a variable otherwise included in the "population statistics" subset.  "Median household income" clusters with the rest of of the rent / property value dimensions, running perpendicular to the "eviction" varaibles.
+From this biplot, we can see two clear clusters of variables.  The dimensionality of "eviction" variables(eviction rate and eviction filing) is nearly perpendicular to the rest of the "housing" variables (percent renter occupied, mean gross rent, etc). This is somewhat surprising to me, as I would have assumed that variables such as median property value and median rent would possibly be correlated with eviction rates.  For robustness, I re-run the "housing" PCA to include "median household income," a variable otherwise included in the "population statistics" subset.  "Median household income" clusters with the rest of of the rent / property value dimensions, running perpendicular to the "eviction" varaibles.
 
 While this plot is still somewhat difficult to read, we again see DC as an outlier.  Both DC and Hawaii (HI) are higher on the "housing" access- they both have higher meadian property value and higher median gross rent.  They also appear to have higher percentages of renters.  
 
@@ -1740,7 +1644,8 @@ biplot(pca.AA.housing, scale = 0, arrow.len = 0)
 #Interestingly, pct.AA appears to move in the same direction of eviction rates.
 
 ```
-#Variation & Analysis: Population Statistics PCA
+
+### Variation & Analysis: Population Statistics PCA
 In the "Population Statitics" PCA, 
 PC1 accounts for 33.21%  of the model's variance, and is mostly a function of mostly a function of precent asian, percent multi-racial, percent pacific islander, and population size.  PC2 describes 20.81% of the model's variance, and is mainly a funtion of percent "other" race, median household income, and poverty rate.  
 
@@ -1748,7 +1653,7 @@ The biplot of PC1 and PC2 shows Hawaii (HI) to be a clear outlier, with its larg
 
 Notably, I was surprised to know that percent African American was not more important in each PC, as I know that social science literature traditionally is closely related to a variety of life outcome variables.  To see whether the negligible effect of percent African American is due to its inclusion in the "Population Statistics" PCA, I add it to the "Housing" PCA and examine the results.  Interestingly, Percent African American does appear correlated with eviction rates and evictions filing rates.  However, principal components for which Percent African American plays a large role contribute minimal variance to the overall model.
 
-#Relating unsupervised PCA to trends in COVID-19 outbreak severity
+## Relating unsupervised PCA to trends in COVID-19 outbreak severity
 How well does unsupervised PCA allow to examine baseline differences between states?  How does this inform our understanding of the underlying conditions of states most severly impacted by COVID?  Let's examine which states have been most impacted by COVID to date.  None of these seven states appeared as outliers on our state-level PCA biplots.  However, this may not be the fault of PCA.  In order to generate a readable graphic, I chose to aggregate data a state-level.  If we were to conduct a county-levelPCA for a single state, we may see a stronger relationship betwee housing/ demographic variable and their relationship to county-level impacts of COVID. 
 
 ```{r}
@@ -1758,9 +1663,9 @@ evict.covid.bystate %>%
 ```
 
 
-#2. HIERARCHICAL clustering: 
-## What states are dissimilar from one another, and what are the potential features that cause them to be so?
-## Data Cleaning
+# 2. HIERARCHICAL clustering: 
+### What states are dissimilar from one another, and what are the potential features that cause them to be so?
+### Data Cleaning:
 For the purpose of our exploratory project, we remove "evictions" variable, as we consider "evictions filings" more heavily.
 
 ```{r}
@@ -1898,9 +1803,8 @@ fviz_cluster(list(data = c.low.case.clust.df, cluster = c.low.case.clust),
 
 Another way to show the same results from the previous dendrogram is with a scatterplot as shown here. We designate k as 6, resulting in 6 different clusters. One difference to note between the dendrogram and the scatterplot is that this plot represents the first stage of the dendrogram, that is, before HI, AK, and CA are merged into subsets. Before that stage, these three states are acting "outliers". HI is the farthest amongst all 51 states (especially the three subgroups), followed by CA and AK. One drawback is that it is difficult to  identify all states regardless of whether they overlap in the graph. 
 
-* Note: The dimensions represent a percentage of variation from the original dataset used. The principal component accounts for 38.5% and the second component accounts for 23.8% of the variation in the dataset. This somewhat low variation suggests lower level of dispersion that, for example, dimension percentage of 70% would. 
+*Note: The dimensions represent a percentage of variation from the original dataset used. The principal component accounts for 38.5% and the second component accounts for 23.8% of the variation in the dataset. This somewhat low variation suggests lower level of dispersion that, for example, dimension percentage of 70% would. 
 
-----------
 Now that we have extensively explored different linkage methods as well as closer look into certain states, we will look at three other cases more concisely, with complete linkage only. 
 
 ### Higher than the US Level (CASE rate) 
@@ -2034,7 +1938,6 @@ First and foremost, we have the flexibility to choose what method to use for hie
 
 One disadvantage of hierarchical clustering is that it is difficult to pinpoint the factors that act as threshold of the clustering process. We can only assume the potential variables that may have played into it, such as geographical proximity, but that does not hold true in all cases, as we have observed in the first case. There could be other underlying socioeconomic factors, but with hierarchical clustering, we cannot confirm with full certainty, neither the dendrograms nor the scatterpots with fviz_cluster() function identify them. 
 
------------------------------------
 
 # 3. K-MEANS clustering
 ### How can states be clustered in certain groups? Does higher k value mean better separation amongst the states?
@@ -2067,7 +1970,7 @@ for(i in 1:20){
               i)
  tot[i] <- km$tot.withinss/i #averaging by the # of clusters
 }
-plot(tot) #k between 3 and 5 seems reasonable
+plot(tot)
 ```
 
 From the elbow plot above, we see that the optimal k would be either 2 or 3 given that the variation is low to the extent to which it doesn't overfit the data (c.f. when k = 20). These values are lower than what we have seen in hierarchical clustering. Similarly to the effects of high levels of k, such low values of k most likely result in "underfitting" -- that is, it will not clearly divide the data points into groups. 
@@ -2131,7 +2034,6 @@ As we see with total within-variation, the case in which k = 2 has the highest v
 
 With this total within-variation analysis as well as the visualized scatterplot with "k" clusters, we can see that even what we would assume to be the "optimal" value of k (which was 6) is not necessarily the "optimal" value after all. Therefore, as much as k-means clustering is one of the most common clustering method, it is not efficiently applicable to this field of research that aims to analyze the interrelatedness of eviction-related socioeconomic factors and covid-related results. 
 
----- 
 
 # Overall Analysis
 ## 1. Supervised vs Unsupervised Learning
@@ -2141,28 +2043,8 @@ Meanwhile, in unsupervised learning, we were focused more on how regions (e.g. c
 
 The practical use of combining supervised and unsupervised learning allows us to observe the characteristics of a certain area/region that would potentially influence certain levels (high or low) of outbreaks and/or deaths caused by Covid-19. For example, if we were to observe a situation with high correlation between high housing instability and covid cases (or deaths), then policy makers could approach the Covid issue by addressing what could perhaps be its root cause: housing instability and/or eviction. 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-#2. Supervised Learning
-As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
-=======
-=======
-<<<<<<< HEAD
-=======
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
-#2. Supervised Learning
-As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
-=======
-=======
->>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
-<<<<<<< HEAD
->>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
-=======
->>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 ## 2. Supervised Learning
-
->>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
+As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
 
 ## 3. Unsupervised learning
 Firstly, PCA allows to decrease dimensionality of the data, because a single component or variable can account for multiple variables in the data. On the other hand, it can be difficult to visualize high-dimensional data, simlar to K-means clustering, as we are unable to see the individually analyze each variable. However, despite the lack of ability to visually present the data, it can give insight to what drives the dendrogram that we create.
@@ -2171,18 +2053,20 @@ Hierarchical clustering is geared more towards looking at the level of dissimiar
 
 With k-means clustering, not only is it hard to determine the "optimal" k, but it is also time consuming to create a "perfect" graph that shows clear clusters, espeically when k-means visualization shows organized clusters in two dimensions only and there are multiple variables we hope to observe. We observe that each k has its drawbacks, regardless of how high or low it is. More specifically, overlaps exist even when k is as low as 2, so maybe we should take that as given, or we should look for another, better technique than k-means clustering. One thing that k-means clustering has that hierarchical clustering doesn't, however, is that it allows us to look at the dataset more holistically, that is, with all four cases with covid cases and deaths. 
 
-Overall, when it comes to answering our research questions and exploring our main point of relationships between eviction- and demographics- variables and covid-related data, some combination of PCA hierarchical clustering seem to be the best route to explore the data. The main reason behind this is that PCA allows us to analyze what drives the creation of dendrogram that presents distances of dissimilarity amongst states and shows a better visualization that what PCA does. Even though we have looked at samples of some states in this clustering method, our study serves as a sample of a bigger study that could be conducted for further research that looks more deeply into what determines the level of dissimilarities amongst the states besides the potential geographical proximity and other socioeconomic factors behind eviction filings. 
+Overall, when it comes to answering our research questions and exploring our main point of relationships between eviction- and demographics- variables and covid-related data, some combination of PCA and hierarchical clustering seem to be the best route to explore the data. The main reason behind this is that PCA allows us to analyze what drives the creation of dendrogram that presents distances of dissimilarity amongst states and shows a better visualization that what PCA does. Even though we have looked at samples of some states in this clustering method, our study serves as a sample of a bigger study that could be conducted for further research that looks more deeply into what determines the level of dissimilarities amongst the states besides the potential geographical proximity and other socioeconomic factors behind eviction filings. 
 
 
 
 
 ### References
-Unsupervised:
+
+
+Supervised:
 https://towardsdatascience.com/understanding-the-bias-variance-tradeoff-165e6942b229
 https://towardsdatascience.com/ensemble-methods-bagging-boosting-and-stacking-c9214a10a205
 https://towardsdatascience.com/why-random-forest-is-my-favorite-machine-learning-model-b97651fa3706
 
-Supervised:
+Unsupervised:
 Ward's method
 https://www.stat.cmu.edu/~cshalizi/350/lectures/08/lecture-08.pdf
 
