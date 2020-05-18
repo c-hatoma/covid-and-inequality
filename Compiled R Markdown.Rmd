@@ -1,7 +1,7 @@
 ---
-title: "Studying eviction-related variables and their relevance with COVID19 statistics"
+title: "Studying eviction-related variables and their relevance to COVID19 statistics"
 author: "Olivia Jin, Jennifer Ko, Bea Lee, Chica Morrow"
-date: "5/17/2020"
+date: "5/18/2020"
 output: html_document
 ---
 
@@ -12,20 +12,20 @@ Given the wide range of learning techniques we explore in our project, each mode
 
 # Table of Contents
 Supervised Learning:
-- 1. LM (simple, long)
-- 2. knn
-- 3. Single Decision Trees, Bagging, Boosting and Random Forests 
-- 4. LDA
+1. LM (simple, long, Logit)
+2. knn
+3. Single Decision Trees, Bagging, Boosting and Random Forests 
+4. LDA
 
 Unsupervised Learning: 
-- 1. PCA
-- 2. Hierarchical
-- 3. K-Means
+1. PCA
+2. Hierarchical
+3. K-Means
 
 Overall Analysis
-- Supervised vs Unsupervised
-- Supervised
-- Unsupervised
+* Supervised vs Unsupervised
+* Supervised
+* Unsupervised
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
@@ -53,16 +53,16 @@ library(xtable)
 library(MASS)
 library(pastecs)
 ```
-
-# [SUPERVISED LEARNING]
-### Load Data
-Loading appended data with COVID-19 and eviction data.
+Load Data:
+COVID-19 and eviction data (appended).
 ```{r data}
 covid.eviction <- read_csv("covid_eviction2.csv")
 ```
 
+# [SUPERVISED LEARNING]
+
 # 1. LM Models
-# Simple LM
+## Simple LM
 Question: Do eviction filing rates have an effect on COVID case rates at the county level?
 
 A simple lm model uses only our independent variable of interest, eviction filing rates, on the right hand side.
@@ -73,13 +73,13 @@ summary(lm1)
 ```
 The lm output gives us the R-squared and adjusted R-squared values which reperesent how well our model explains variations in our output/prediction.
 
-## Adjusted R-squared:
+### Adjusted R-squared:
 The adjusted R-squared value here is low, meaning while the eviction filing rate is significant, its variations account for only 2% of the variation in COVID cases. To better optimize our lm model, we can consider how other variables may impact our coefficient on eviction or if they better explain COVID cases than eviction.
 
-## F-statistic:
+### F-statistic:
 The F-test, which tells us whether our R-squared value is significantly different from 0, is significant, which leads us to conclude that our model overall is significant.
 
-## Magnitude of Coefficients
+### Magnitude of Coefficients
 Another way to assess the efficacy of our linear model is by looking at the magnitude of our coefficients. While significant at below the 0.1% level, it's difficult to know what the coefficient of 9.185e-05 actually means.
 
 A graph and summary statistics can help us visualize what this slope actually means:
@@ -95,7 +95,7 @@ Even though our coefficient ws significant, by looking at the fitted line plotte
 ```{r}
 sumstats <- stat.desc(covid.eviction %>%
                     dplyr::select(`poverty-rate`, `renter-occupied-households`, `pct-renter-occupied`, `median-gross-rent`, `median-household-income`, `median-property-value`, `rent-burden`, `pct-white`, `pct-af-am`, `pct-hispanic`, `pct-am-ind`, `pct-asian`, `pct-multiple`, `eviction-filing-rate`, county_covid_cases_rate, county_covid_death_rate))
-sumstats[c(4, 8, 9, 5, 13), ]
+kable(as.data.frame(sumstats[c(4, 8, 9, 5, 13), ]))
 ```
 Looking at the summary statistics, we see that covid case rates range from 0 to 6.25% of county populations. Eviction filing rates range from 0 to 109.16 (total eviction filings/number of renter-occupued households). Our lm doesn't estimate COVID rates above around 1%, meaning our model would never predict a covid case rate above around 1%, when in reality we see much higher rates ocurring. This further suggests that there are limitations to using a simple linear model to predict on our data.
 
@@ -110,21 +110,22 @@ corr[upper.tri(corr)] <- ""
 corr <- as.data.frame(corr)
 print(kable(corr), type = "latex", comment = FALSE)
 ```
+
 The variables most highly correlated with county-level covid cases & deaths are pct white, median gross rent, pct renter occupied, and pct asian. While eviction filing rates don't seem to be very highly correlated with covid case rates, we can still include it in our lm model.
 
-# Long LM Model Using High Correlation Variables
+## Long LM Model Using High Correlation Variables
 ```{r}
 lm2 <- lm(county_covid_cases_rate ~ `eviction-filing-rate` + `pct-white` + `pct-asian` +  `pct-renter-occupied` + `median-gross-rent`,
           data = covid.eviction)
 summary(lm2)
 ```
-## Adjusted R-squared:
+### Adjusted R-squared:
 As we can see in our output, basing our independent variables off of correlations alone helped some but didn't drastically increase Adjusted R-squared and gave us a couple of insignificant variables. We could just add and remove variables until we felt the R-squared was optimal, but that would take a lot of time so we can use the stepwise function to do that for us. 
 
 An additional strength of the stepwise function is that it optimizes models based on AIC rather than relying on R-squared and F-stats alone. 
 
-# Stepwise Long LM with Interaction Terms
-```{r}
+## Stepwise Long LM with Interaction Terms
+```{r, fig.width = 30}
 covid.eviction.naomit <- na.omit(covid.eviction %>%
                                    dplyr::select(`poverty-rate`, `renter-occupied-households`, `pct-renter-occupied`, `median-gross-rent`, `median-household-income`, `median-property-value`, `rent-burden`, `pct-white`, `pct-af-am`, `pct-hispanic`, `pct-am-ind`, `pct-asian`, `pct-multiple`, `eviction-filing-rate`, county_covid_cases_rate))
   
@@ -143,35 +144,33 @@ In addition, multiple linear regression models are difficult to visualize. A 3-D
 
 Without interaction terms, the step function actually isn't too bad at fitting a model. But again, we can't really visualize it and really just have to hope that it can produce accurate predictions.
 
-## Adjusted R-squared
+### Adjusted R-squared
 Our Adjusted R-squared value increased to 0.23, meaning variations in the model explain about 23% of variations in Covid case rates, but our F-statistic decreased. It's still significant, but it may suggest that our model overall isn't as strong.
 
-## F-statistic
+### F-statistic
 Our F-statistic is reduced but still statistically significant.
-
 
 Overall, using a stepwise function to find the best lm is not optimal because it results in overfitting, chooses models based on AIC rather than other significance measures, and as a result includes insignificant variables.
 
-# Stepwise Long LM without Interaction Terms
+## Stepwise Long LM without Interaction Terms
 ```{r}
 step.lm2 <- stepAIC(full.lm,
                    direction = "both",
                    trace = FALSE)
 summary(step.lm2)
 ```
-## Adjusted R-squared
+### Adjusted R-squared
 Our Adjusted R-sqared term increased from 0.02 in our simple lm to 0.11 here. It's still lower the 0.24 value we got from our long lm including interaction terms, meaning it explains less of the data. However, with fewer variables and no interaction terms, coefficients are relatively easy to interpret and we gain some ability to explain variations in COVID case rates. 
 
-## F-statistic:
+### F-statistic:
 Our F-statistic jumps up again, suggesting that this model is still relatively strong and our R-squared is significantly different from 0.
 
-## Significance of our initial independent variable of interest
+### Significance of our initial independent variable of interest
 Eviction filing rates are no longer significant in this model, which highlights how lms can actually be helpful in identifying important variables so you don't have to guess yourself. However, we are no longer answering our question and cannot make meaningful conclusions about our hypotheses.
-
 
 One downside to all of these linear models using a continuous dependent variable is that we can't measure accuracy as we can with other types of predictive models. To adjust our model to allow us to do this, we can perform a logit using a binary dependent variable: Whether Covid cases at the county level are greater than the state average.
 
-# Simple Logistic Regression
+## Simple Logistic Regression
 ```{r}
 logit.model <- glm(covidCases_greater_state ~ `eviction-filing-rate`, 
                    family = 'binomial',
@@ -179,7 +178,7 @@ logit.model <- glm(covidCases_greater_state ~ `eviction-filing-rate`,
 
 summary(logit.model)
 ```
-# AIC
+### AIC
 In this logit model, our eviction filing rate is significant and our AIC high. AIC represents the quality of our model using out-of-sample prediction errors, so a high AIC suggests a strong model. 
 
 Because we only have one dependent variable, it's pretty easy to visualize:
@@ -229,25 +228,24 @@ logit.kappa <- -0.0057
 
 print(cm1)
 ```
-## Accuracy
+### Accuracy
 While our accuracy using our logistic regression model is relatively high at 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
 
-## Precision: 
+### Precision: 
 ```{r}
 logit.precision <- precision(cm1$table)
 print(logit.precision)
 ```
 Relatively high precision (positive predictive value) demonstrates that this model tells us that the fraction of relevant predictions (true positives) out of all predictions (true positives + false positives) is somewhat high. While there are false positives reflected in our denominator, we're not too worried about that with a covid model. It might be better to have false positives than false negatives. Because this value is still less than 1, it means not all results retreived by our model were relevant.
 
-## Recall:
+### Recall:
 ```{r}
 logit.recall <- recall(cm1$table)
 print(logit.recall)
 ```
-## Recall
 The recall value represents how well our model retreives relevant instances: true positives & false negatives. We care about false negatives because we really would not want our model to produce much of that if we were using it to predict areas with covid strains. Our super high recall value shows us that our model retrieved almost all relevant instances.
 
-## F-measure:
+### F-measure:
 Since we really can't cay for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
 ```{r}
 logit.f <- F_meas(cm1$table)
@@ -258,7 +256,7 @@ print(logit.f)
 ```
 Our F-measure is 0.86. Considering 1 is the upper limit on this measure, this is actually pretty good, but we can know more about it by comparing to the f-measure we get from our KNN models.
 
-## Cohen's Kappa:
+### Cohen's Kappa:
 Kappa compares observed accuracy to the accuracy we would expect if classification was random. Since Kappas range from -1 tp 1 in value, our Kappa of -0.0057 represents no agreement, meaning our model isn't doing any better than random chance at matching predictions to our true observations.
 
 
@@ -406,7 +404,7 @@ In addition, because we have so much data and it's largely clustered in one thir
 
 How good is this KNN model by other measures?
 
-## Confusion Matrix for KNN
+### Confusion Matrix for KNN
 ```{r}
 # subsetting original data to train & test
 ran <- sample(1:nrow(ce2), 0.9 * nrow(ce2))
@@ -474,29 +472,31 @@ KNN.matrix <- data.frame(K = c(5, 7, 10),
 
 kable(KNN.matrix)
 ```
-## Accuracy:
+
+
+### Accuracy:
 It appears that accuracy is the same for both k = 7 and 10 and a bit higher for k = 5. This makes intuitive sense becuase with a smaller k, you're looking at 'closer' neighbors which are more likely to be similar to each other, and thus better predictors of each other's outcomes.
 
 However, even the highest accuracy of 0.6952 is not really that high because it means a large fraction of our predictions made by these models are incorrect. All of these accuracies are lower than that of our logistic regression model.
 
-## Precision:
+### Precision:
 Precision seems to decrease as K increases, suggesting a lower k is preferable when aiming for precision/a higher fraction of our retrieved instances to be relevant. These precision values are all higher than that of our logit model.
 
-## Recall: 
+### Recall: 
 Recall increases as K increases, suggesting a higher k is preferable if we care more about a high recall/retrieving more of the total relevant instances. These recall values are all well below that of our logit model.
 
-## F-measure:
+### F-measure:
 F-measure increases as K increases. If we weigh precision and recall equally, our f-measures suggest that a k of 10 is optimal, as it maximizes precision and recall on balance. These f-measures are all a little lower than that of our logit model.
 
-## Cohen's Kappa:
+### Cohen's Kappa:
 The Kappas don't seem to follow any particular pattern (they change every time the code is run), making it difficult to assess the true value of Kappa. Our kappas are all pretty low (below 0.20). Kappas of this value are considered ot have little to no agreement, meaning despite our other favorabl measures, these KNN models may not be much better at predicting than random chance. However, these kappas are all well above the negative kappa produced by our logit model.
 
 
 
-#3.Single Decision Trees, Bagging, Boosting and Random Forests 
+# 3.Single Decision Trees, Bagging, Boosting and Random Forests 
 In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
 
-## Create Training and Testing Data
+### Create Training and Testing Data
 Create two data, one for training the different models and the other for testing the models.
 ```{r training/testing}
 #generate index for training data
@@ -906,7 +906,7 @@ rf.death.US
 ```
 
 
-## Test the Models on Testing Data
+### Test the Models on Testing Data
 
 ### Predict outcome on testing data using models
 We predict the outcome of each variables for testing data using the models we generated above. 
@@ -1048,7 +1048,7 @@ for (i in model.types) {
 
 ```
 
-# Accuracy Function
+### Accuracy Function
 This function uses a 2x2 confusion matrix as an input to calculate the accuracy.
 ```{r accuracy}
 accuracy <- function(confusion.matrix) {
@@ -1065,7 +1065,7 @@ accuracy <- function(confusion.matrix) {
 }
 ```
 
-# Cohen's Kappa Function
+### Cohen's Kappa Function
 This function uses a 2x2 confusion matrix as an input to calculate Cohen's Kappa.
 ```{r kappa}
 kappa <- function(confusion.matrix) {
@@ -1090,7 +1090,7 @@ kappa <- function(confusion.matrix) {
 }
 ```
 
-# Create a table to compare all models
+### Create a table to compare all models
 We calculate the accuracy and the kappa of each model, and we use that to generate a comparison table that shows the accuracy and the kappa for each type of model for each outcome variable. 
 ```{r comparison}
 #vector of 4 different outcome variables
@@ -1244,12 +1244,12 @@ s.v.n.accuracy %>%
 
 The accuracy of this model is 0.78.
 
-## Comparing accuracies in all Supervised Learning techniques in a table:
+### Comparing accuracies in all Supervised Learning techniques in a table:
 ```{r}
 
 ```
 
-## Overall analysis of Supervised Learning techniques:
+### Overall analysis of Supervised Learning techniques:
 
 
 # [UNSUPERVISED LEARNING]
@@ -1451,7 +1451,7 @@ covid.eviction2.clust <- covid.eviction2.clust %>%
   summarise_all(mean, na.rm = TRUE)
 ```
 
-## Fundamental Calculations
+### Fundamental Calculations
 Most names of the columns stay the same (c.f. covid.eviction2 dataset)
 
 ```{r}
@@ -1484,7 +1484,7 @@ covid.eviction2.clust <- covid.eviction2.clust %>%
 
 In hierarchical clustering, we use continuous, quantitative variables only. With four graphs below, we reason why we choose complete linkage as our metric of optimization, as hierarchical clustering is observed with the "degree of dissimilarity" amongst the states. We use Euclidean distance as part of the clustering process.
 
-## State Covid CASE Rates: 
+### State Covid CASE Rates: 
 ### lower than the US level
 
 ```{r}
@@ -1626,7 +1626,7 @@ With fewer states present given the condition that covid case rates are larger t
 
 When looking at the dendrogram with colors based on k = 4 (changing k here, however, does not change the clustering process, as shown in the second graph), we see that the far RHS shows the New England states, from NJ to MA. However, some of the other New England states are clustered into other groups with non-New England states, e.g. RI with DE, IL and PA. Moreover, DC is the most dissimlar state amongst these 12 states. The observation of DC being an outlier was previously seen in PCA. 
 
-## Covid DEATH Rates
+### Covid DEATH Rates
 ### lower than the US level
 ```{r}
 d.lower.state <- covid.eviction2.clust %>%
@@ -1715,17 +1715,17 @@ One disadvantage of hierarchical clustering is that it is difficult to pinpoint 
 
 -----------------------------------
 
-#3. K-MEANS clustering
-## How can states be clustered in certain groups? Does higher k value mean better separation amongst the states?
+# 3. K-MEANS clustering
+### How can states be clustered in certain groups? Does higher k value mean better separation amongst the states?
 
 From hierarchical clustering, we see that clustering is done best when k ranges from 4 to 6. Again, we attempted hierarchical clustering before k-means clustering given that it is hard to find the "optimal" k-value. Right off the bat, it is hard to do k-means clustering, since we're using each of the 51 states as a categorical variable. It is not the same as when we observe starbucks data from openintro library or iris dataset where there are groups of states that we start off with. 
 
 Therefore, we will explore the dataset, focusing on the case and death rates in general. That is, instead of looking at each state in a given level (e..g case rate < US level), we will categorize all states by the case rate level, in which it is either higher or lower than the US level.
 
-## Metric of optimization for K-Means clustering
+### Metric of optimization for K-Means clustering
 We designate within-cluster variation of "k" number of clusters as our metric of optimization, as k-means clustering attempts to put data points into clusters -- thus, it is important to analyze and affirm that those data points are grouped according to similar attributes and such that will help make sense in the clustering process. To use within variation as our metric, we use Euclidean distance like we did in hierarchical clustering. 
 
-## Creating Levels (depending on case and death rates):
+### Creating Levels (depending on case and death rates):
 ```{r}
 km.covid.eviction2.clust <- covid.eviction2.clust[,-c(18, 22:25)]
 km.covid <- km.covid.eviction2.clust %>%
@@ -1736,7 +1736,7 @@ km.covid <- km.covid.eviction2.clust %>%
 
 ```
 
-## Determining the "optimal" range of k
+### Determining the "optimal" range of k
 
 ```{r}
 # Let's make a graph showing k vs the total within cluster variation
@@ -1813,17 +1813,17 @@ With this total within-variation analysis as well as the visualized scatterplot 
 ---- 
 
 # Overall Analysis
-#1. Supervised vs Unsupervised Learning
+## 1. Supervised vs Unsupervised Learning
 Supervised learning is beneficial in analyzing Covid-related data in short term, because it allows us to predict what regions would be expected to have high/low occurrences. This then would help healthcare or government officials to easily target and address issues in those areas.
 
 Meanwhile, in unsupervised learning, we were focused more on how regions (e.g. counties and/or states) differentiate from each other, and what variables play a role in this process. 
 
 The practical use of combining supervised and unsupervised learning allows us to observe the characteristics of a certain area/region that would potentially influence certain levels (high or low) of outbreaks and/or deaths caused by Covid-19. For example, if we were to observe a situation with high correlation between high housing instability and covid cases (or deaths), then policy makers could approach the Covid issue by addressing what could perhaps be its root cause: housing instability and/or eviction. 
 
-#2. Supervised Learning
+## 2. Supervised Learning
 
 
-#3. Unsupervised learning
+## 3. Unsupervised learning
 Firstly, PCA allows to decrease dimensionality of the data, because a single component or variable can account for multiple variables in the data. On the other hand, it can be difficult to visualize high-dimensional data, simlar to K-means clustering, as we are unable to see the individually analyze each variable. However, despite the lack of ability to visually present the data, it can give insight to what drives the dendrogram that we create.
 
 Hierarchical clustering is geared more towards looking at the level of dissimiarility of accuracies and allows us to observe which states are more similar and different from one another. It does somewhat answer to our research question that focuses on potential relevance of socioeconomic factors like eviction rate, poverty rate, and income with covid case and death rates, but is only restricted to our assumption, including the effect of geographical proximity on clustering. Ultimately, we cannot confirm solely from hierarchical clustering. Moreover, we are limited to observing one condition of all four conditions at a time (e.g. covid case rate < US level).
@@ -1835,13 +1835,13 @@ Overall, when it comes to answering our research questions and exploring our mai
 
 
 
-*References*
-* Unsupervised
+### References
+Unsupervised:
 https://towardsdatascience.com/understanding-the-bias-variance-tradeoff-165e6942b229
 https://towardsdatascience.com/ensemble-methods-bagging-boosting-and-stacking-c9214a10a205
 https://towardsdatascience.com/why-random-forest-is-my-favorite-machine-learning-model-b97651fa3706
 
-*Supervised
+Supervised:
 Ward's method
 https://www.stat.cmu.edu/~cshalizi/350/lectures/08/lecture-08.pdf
 
