@@ -235,12 +235,16 @@ While our accuracy using our logistic regression model is relatively high at aro
 =======
 =======
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## Accuracy
 While our accuracy using our logistic regression model is relatively high at around 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
 =======
 =======
 >>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 >>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 ### Accuracy
 While our accuracy using our logistic regression model is relatively high at 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
@@ -261,17 +265,23 @@ The recall value represents how well our model retreives relevant instances: tru
 
 <<<<<<< HEAD
 <<<<<<< HEAD
-## F-measure:
-Since we really can't say for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
-=======
-=======
 <<<<<<< HEAD
 ## F-measure:
 Since we really can't say for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
 =======
 =======
+<<<<<<< HEAD
+=======
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
+## F-measure:
+Since we really can't say for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
+=======
+=======
 >>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
+<<<<<<< HEAD
 >>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
+=======
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 ### F-measure:
 Since we really can't cay for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
@@ -531,17 +541,23 @@ The Kappas don't seem to follow any particular pattern (they change every time t
 
 <<<<<<< HEAD
 <<<<<<< HEAD
-#3.Single Decision Trees, Bagging, Boosting and Random Forests 
-In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
-=======
-=======
 <<<<<<< HEAD
 #3.Single Decision Trees, Bagging, Boosting and Random Forests 
 In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
 =======
 =======
+<<<<<<< HEAD
+=======
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
+#3.Single Decision Trees, Bagging, Boosting and Random Forests 
+In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
+=======
+=======
 >>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
+<<<<<<< HEAD
 >>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
+=======
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 
 # 3.Single Decision Trees, Bagging, Boosting and Random Forests 
 In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
@@ -1148,12 +1164,16 @@ We calculate the accuracy, kappa, precision, recall and f statistics of each mod
 =======
 =======
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Create a table to compare all models
 We calculate the accuracy, kappa, precision, recall and f statistics of each model, and we use that to generate a comparison table that shows the efficiency for each type of model for each outcome variable. 
 =======
 =======
 >>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 >>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 ### Create a table to compare all models
 We calculate the accuracy and the kappa of each model, and we use that to generate a comparison table that shows the accuracy and the kappa for each type of model for each outcome variable. 
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
@@ -1548,6 +1568,7 @@ kable(comparison.supervised, digits = 3)
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 >>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
@@ -1562,6 +1583,16 @@ The table above compares the 5 measures (accuracy, precision, recall, f stats, a
 ### Overall analysis of Supervised Learning techniques:
 >>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 >>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
+=======
+## Overall analysis of Supervised Learning techniques:
+The table above compares the 5 measures (accuracy, precision, recall, f stats, and kappa) across all supervised learning techniques that we used to predict whether COVID-19 cases are greater than the state average in a given county using its eviction filing rate and other demographic variables. It seems like random forest and LDA models are the most effective when it comes to predicting the outcome, with high values across all 5 measures.
+=======
+### Overall analysis of Supervised Learning techniques:
+>>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
+=======
+### Overall analysis of Supervised Learning techniques:
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 
 
 # [UNSUPERVISED LEARNING]
@@ -2112,17 +2143,23 @@ The practical use of combining supervised and unsupervised learning allows us to
 
 <<<<<<< HEAD
 <<<<<<< HEAD
-#2. Supervised Learning
-As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
-=======
-=======
 <<<<<<< HEAD
 #2. Supervised Learning
 As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
 =======
 =======
+<<<<<<< HEAD
+=======
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
+#2. Supervised Learning
+As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
+=======
+=======
 >>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
+<<<<<<< HEAD
 >>>>>>> 14a41649b4c6db39c9aaa3c3f2d0cabecf8327ae
+=======
+>>>>>>> b7f9087e39436f07b583dbddd8479311430f6af6
 ## 2. Supervised Learning
 
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
