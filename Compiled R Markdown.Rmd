@@ -229,9 +229,12 @@ logit.kappa <- as.data.table(cm1$overall)[2,]
 print(cm1)
 ```
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## Accuracy
 While our accuracy using our logistic regression model is relatively high at around 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
 =======
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 ### Accuracy
 While our accuracy using our logistic regression model is relatively high at 0.75, we can see that there are actually a lot of false negatives, which we would ideally want minimized if we were trying to actually predict counties under most stress from Covid. This model would result in an underreporting of counties with covid case rates higher than state levels.
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
@@ -251,9 +254,12 @@ print(logit.recall)
 The recall value represents how well our model retreives relevant instances: true positives & false negatives. We care about false negatives because we really would not want our model to produce much of that if we were using it to predict areas with covid strains. Our super high recall value shows us that our model retrieved almost all relevant instances.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## F-measure:
 Since we really can't say for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
 =======
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 ### F-measure:
 Since we really can't cay for sure whether it's better to have false negatives (county doesn't receive attention) or false positives (diversion of attention from counties that actually need it to ones that don't), we can weigh the overall precision and recall of the model using a beta of 1, meaning recall and precision are equally weighted. 
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
@@ -512,9 +518,12 @@ The Kappas don't seem to follow any particular pattern (they change every time t
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #3.Single Decision Trees, Bagging, Boosting and Random Forests 
 In this section, I will use decision trees to use eviction filing rate and other demographic variables of a county to predict COVID-19 case and death outcomes. I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their performance. 
 =======
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 
 # 3.Single Decision Trees, Bagging, Boosting and Random Forests 
 In this section, I will be comparing 4 different types of models: a single decision tree, bagging, boosting, and random forest. I will train these models on the training data, and will be using the testing data to examine each of their accuracy and Cohen's Kappa. 
@@ -1115,9 +1124,12 @@ kappa <- function(confusion.matrix) {
 ```
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Create a table to compare all models
 We calculate the accuracy, kappa, precision, recall and f statistics of each model, and we use that to generate a comparison table that shows the efficiency for each type of model for each outcome variable. 
 =======
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 ### Create a table to compare all models
 We calculate the accuracy and the kappa of each model, and we use that to generate a comparison table that shows the accuracy and the kappa for each type of model for each outcome variable. 
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
@@ -1453,8 +1465,11 @@ confusionMatrix(LDA.death.confusion, mode = "everything")
 #Accuracy and Confusion Matrix
 Our LDA model predicting whether State COVID deaths rates are higher or lower than their state's average has an approximate accuracy of 54.27%.  This is lower that the accuracy of our COVID case model, as well as most of the other supervised learning algorithms previously utlized in this project.  Again, I generate a 2x2 confusion matrix to explore the distribution correct and incorrect predicted models.
 
+<<<<<<< HEAD
 Of the total 176 counties in the testing sameple with COVID death rates lower than their state's average, 100 were correctly predicted by the LDA.  As occured in the COVID case LDA model, predictions for counties with COVID death rates higher than their state's average were largely innaccurate - 15 of a total 23 counties were correctly classified.  Once again, this suggests that counties highly-effected by COVID, both in case and death rate, do not strictly believe similarly.  Without a clear separation between counties with higher or lower than state average death rates, LDA is likely not the most effective modeling technique to answer this question.
 
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 ### Comparing accuracies in all Supervised Learning techniques in a table:
 ```{r}
 #create vector of each measures
@@ -1508,11 +1523,15 @@ kable(comparison.supervised, digits = 3)
 ```
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## Overall analysis of Supervised Learning techniques:
 The table above compares the 5 measures (accuracy, precision, recall, f stats, and kappa) across all supervised learning techniques that we used to predict whether COVID-19 cases are greater than the state average in a given county using its eviction filing rate and other demographic variables. It seems like random forest and LDA models are the most effective when it comes to predicting the outcome, with high values across all 5 measures.
 =======
 ### Overall analysis of Supervised Learning techniques:
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
+=======
+### Overall analysis of Supervised Learning techniques:
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 
 
 # [UNSUPERVISED LEARNING]
@@ -2062,9 +2081,12 @@ Meanwhile, in unsupervised learning, we were focused more on how regions (e.g. c
 The practical use of combining supervised and unsupervised learning allows us to observe the characteristics of a certain area/region that would potentially influence certain levels (high or low) of outbreaks and/or deaths caused by Covid-19. For example, if we were to observe a situation with high correlation between high housing instability and covid cases (or deaths), then policy makers could approach the Covid issue by addressing what could perhaps be its root cause: housing instability and/or eviction. 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #2. Supervised Learning
 As discussed previously in the supervised learning section, when comparing the different supervised learning techniques that we have learned this semester, random forests and LDA models seem to be the most effective in predicting outcomes accurately in the case of our data. 
 =======
+=======
+>>>>>>> 8cd06401335a458a44dc4ec962ce1caf9cc58af6
 ## 2. Supervised Learning
 
 >>>>>>> 6ee65a00d2eb789eaac6587657a5fe6ef0327874
