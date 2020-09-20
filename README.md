@@ -1,35 +1,28 @@
 # covid-and-inequality
 Final project for Alex Lyford's Statistical Learning class at Middlebury College. Collaborators are Bea Lee '20.5, Chica Morrow '20, Jennifer Ko '21, Olivia Jin '20.
 
+Our group aims to look at US county-level data on eviction and demographics (e.g. eviction filings, poverty rate, and racial distributions), as well as their relevance with Covid-19 statistics like death and case rates. Using supervised and unsupervised learning, we explore the data that we obtained from USAFacts (https://usafacts.org/visualizations/coronavirus-covid-19-spread-map), Eviction Lab (https://evictionlab.org/), and US Census as of 4/30/2020 (https://www.census.gov/popclock/).
 
-## Data Dictionary
+Given the wide range of learning techniques we explore in our project, each model addresses a different question.
 
-* year: year
-* fips: county fips code
-* County: county
-* population: county population
-* stateFIPS: state fips code
-* State: state
+## Methods
+Supervised Learning: 
+1. LM (simple, long, Logit) 
+2. knn 
+3. Single Decision Trees, Bagging, Boosting and Random Forests 
+4. LDA
 
-* Evictions: number of evictions in county as of 2016
-* County_eviction_rate: (total number of eviction filings in county)/(county population)
-* State_eviction_rate: average of county eviction rates in state
-* US_eviction_rate: (total number of eviction filings in US)/(US population)
-* Evictions_greater_state: 1 if county eviction rate is greater than state average, 0 otherwise
-* Evictions_greater_US: 1 if county eviction rate is greater than US average, 0 otherwise
+Unsupervised Learning: 
+1. PCA 
+2. Hierarchical 
+3. K-Means
 
-* covidCases: number of reported COVID cases in county
-* covidDeaths: number of reported COVID deaths in county
-* County_covid_cases_rate: (total number of reported COVID cases in county)/(county population)
-* County_covid_death_rate: (total number of reported COVID deaths in county)/(county population)
-* State_covid_cases_rate: average of county reported COVID case rates in state
-* State_covid_death_rate: average of county reported COVID death rates in state
-* US_covid_cases_rate: (total number of reported COVID cases in US)/(US population)
-* US_covid_death_rate: (total number of reported COVID deahts in US)/(US population)
-
+Overall Analysis 
+* Supervised vs Unsupervised 
+* Supervised 
+* Unsupervised
 
 ## Data Sources
-
 Aggregated COVID cases & deaths from CDC and state & local public health agencies: https://usafacts.org/visualizations/coronavirus-covid-19-spread-map/ 
 
 County-level eviction filing cases as reported by states:
